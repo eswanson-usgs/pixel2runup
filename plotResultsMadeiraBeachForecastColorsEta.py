@@ -36,7 +36,9 @@ def coordSys_madbeach(E, N):
     #origin Northing
     N0 = 3075922.21413775
 
-    xyRotate(E, N, theta, xo=E0, yo=N0)
+    X,Y = xyRotate(E, N, theta, xo=E0, yo=N0)
+
+    return X,Y
 
 def xyRotate(x, y, theta, xo=0, yo=0):
     '''
@@ -62,11 +64,18 @@ def xyRotate(x, y, theta, xo=0, yo=0):
     
     #rotation matrix. Convert theta from degrees to radian for correct output
     A = np.array([[np.cos(theta), np.sin(theta)], [(-1)*np.sin(theta), np.cos(theta)]])
+    
+    outX = x - xo
+    outY = y - yo
+    out = np.array([outX, outY])
+    #transpose from shape 2,len(247) to shape len(x),247. e.g. 2,247 --> 247,2
+    out = np.transpose(out)
+    out = np.matmul(out, A)
 
-    columnE = x.transpose()
-    print(columnE)
-    print(columnE.shape)
+    XR = out[0:len(x), 0]
+    YR = out[0:len(y), 1]
 
+    return XR,YR
     
     
 
@@ -139,4 +148,9 @@ with open(mostRecentLine60, 'r') as xyzFile:
 
 E = np.array(E)
 N = np.array(N)
-coordSys_madbeach(E, N)
+X,Y = coordSys_madbeach(E, N)
+print(X)
+print(Y)
+print(X.shape)
+print(Y.shape)
+
