@@ -130,12 +130,8 @@ for file in mostRecentDir:
 #yes, most recent folder has .xyz files
 if hasXYZ:
     mostRecentLine60 = '//gs/stpetersburgfl-g/NACCH/Imagery/madbeach/surveys/walking/' + mostRecent + '/line60.xyz'
-    mostRecentLine49 = '//gs/stpetersburgfl-g/NACCH/Imagery/madbeach/surveys/walking/' + mostRecent + '/line49.xyz'
-    mostRecentLine48 = '//gs/stpetersburgfl-g/NACCH/Imagery/madbeach/surveys/walking/' + mostRecent + '/line48.xyz'
 else:
     mostRecentLine60 = '//gs/stpetersburgfl-g/NACCH/Imagery/madbeach/surveys/walking/' + secondMostRecent + '/line60.xyz'
-    mostRecentLine49 = '//gs/stpetersburgfl-g/NACCH/Imagery/madbeach/surveys/walking/' + secondMostRecent + '/line49.xyz'
-    mostRecentLine48 = '//gs/stpetersburgfl-g/NACCH/Imagery/madbeach/surveys/walking/' + secondMostRecent + '/line48.xyz'
 
 #process line60
 profileE = []
@@ -158,30 +154,14 @@ profileN = np.array(profileN)
 profileZ = np.array(profileZ)
 profileX, profileY = coordSys_madbeach(profileE, profileN)
 
-#process line48
-p2E = []
-p2N = []
-p2Z = []
-with open(mostRecentLine48, 'r') as xyzFile:
-    for line in xyzFile:
-        xyz = line.split(' ')
-        x = float(xyz[0])
-        y = float(xyz[1])
-        z = xyz[2]
-        #z has newiine character at the end
-        z = float(z.replace('\n', ''))
-        p2E.append(x)
-        p2N.append(y)
-        p2Z.append(z)
+#change NaN to 0s
+for i, elem in enumerate(profileZ);
+    if (elem == np.nan) or (elem == None):
+        profileZ[i] = 0
 
-p2E = np.array(profileE)
-p2N = np.array(profileN)
-p2Z = np.array(profileZ)
-p2X, p2Y = coordSys_madbeach(p2E, p2N)
-print(p2X)
-print(p2Y)
-print(p2Z)
-
+profileX = int(profileX)
+profileY = int(profileY)
+profileZ = int(profileZ)
 
 
 
