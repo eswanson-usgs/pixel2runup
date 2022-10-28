@@ -155,13 +155,21 @@ profileZ = np.array(profileZ)
 profileX, profileY = coordSys_madbeach(profileE, profileN)
 
 #change NaN to 0s
-for i, elem in enumerate(profileZ);
+for i, elem in enumerate(profileZ):
     if (elem == np.nan) or (elem == None):
         profileZ[i] = 0
 
-profileX = int(profileX)
-profileY = int(profileY)
-profileZ = int(profileZ)
+##profileX = int(profileX)
+##profileY = int(profileY)
+##profileZ = int(profileZ)
 
-
-
+uniqueZ = np.unique(profileZ)
+a, b = np.histogram(profileZ, bins=uniqueZ)
+mult = np.argwhere(a > 1)
+#catch >2 identical values
+for ii in range(0, len(mult)):
+    index = np.argwhere(np.isin(b, mult[ii]))
+    print(index)
+    
+                                    
+    
