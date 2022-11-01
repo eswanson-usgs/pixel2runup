@@ -8,6 +8,7 @@ import numpy as np
 import scipy.io
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy import random
 
 
 ### FUNCTIONS ###
@@ -166,10 +167,19 @@ for i, elem in enumerate(profileZ):
 uniqueZ = np.unique(profileZ)
 a, b = np.histogram(profileZ, bins=uniqueZ)
 mult = np.argwhere(a > 1)
-#catch >2 identical values
-for ii in range(0, len(mult)):
-    index = np.argwhere(np.isin(b, mult[ii]))
-    print(index)
+#catch >2 identical values in profileZ
+for i in range(0, len(mult)):
+    #b is ascending array of unique values. mult is array of bins (arrays) in a with dupllicate values. indices in a match indices in b. So, index mult[i][0] will give index of a value in b that is not unique
+    dupValue = b[mult[i][0]]
+    dupIndices = np.argwhere(profileZ == dupValue)
     
-                                    
-    
+    for ii in range(0, len(dupIndices)):
+        #dupIndices[ii][0] is index in profileZ that contains duplicate values
+        index = dupIndices[ii][0]
+        #slightly alter value to prevent duplicates
+        offset = random.rand() * 0.0000000001
+        profileZ[index] = profileZ[index] + offset
+
+uniqueZ = np.unique(profileZ)
+a, b = np.histogram(profileZ, bins=uniqueZ)
+mult = np.argwhere(a > 1)  
