@@ -83,8 +83,8 @@ def xyRotate(x, y, theta, xo=0, yo=0):
 
 ### MAIN ###
 #load image data
-snapFile = '1663245000.Thu.Sep.15_12_30_00.GMT.2022.madbeach.c1.snap.jpg'
-timexFile = '1663245000.Thu.Sep.15_12_30_00.GMT.2022.madbeach.c1.timex.jpg'
+snapFile = '1663246800.Thu.Sep.15_13_00_00.GMT.2022.madbeach.c1.snap.jpg'
+timexFile = '1663246800.Thu.Sep.15_13_00_00.GMT.2022.madbeach.c1.timex.jpg'
 snap = plt.imread(snapFile)
 timex = plt.imread(timexFile)
 geom_c1 = scipy.io.loadmat('./matlabcode/geomFile_c1.mat')
@@ -207,5 +207,8 @@ for i in range(0, len(Rtime)):
     RDatetime = datetime.datetime.strptime(Rtime[i][0][0], "%Y-%m-%d %H:%M:%S.0")
 
     if (RDatetime < imgDatetime + datetime.timedelta(hours=1)) and (RDatetime > imgDatetime - datetime.timedelta(hours=1)):
-        print(RDatetime)
+        tindex = i
+
+#loop through alongshore locations
+num = [x for x in range(-25, -451, -1)]
 
