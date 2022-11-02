@@ -4,12 +4,13 @@
 
 ### IMPORTS ###
 import os
+import datetime
+import time
 import numpy as np
 import scipy.io
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy import random
-
 
 ### FUNCTIONS ###
 def coordSys_madbeach(E, N):
@@ -82,22 +83,27 @@ def xyRotate(x, y, theta, xo=0, yo=0):
 
 ### MAIN ###
 #load image data
-snapFile = '1665860400.Sat.Oct.15_19_00_00.GMT.2022.madbeach.c1.snap.jpg'
-timexFile = '1665860400.Sat.Oct.15_19_00_00.GMT.2022.madbeach.c1.timex.jpg'
+snapFile = '1663245000.Thu.Sep.15_12_30_00.GMT.2022.madbeach.c1.snap.jpg'
+timexFile = '1663245000.Thu.Sep.15_12_30_00.GMT.2022.madbeach.c1.timex.jpg'
 snap = plt.imread(snapFile)
 timex = plt.imread(timexFile)
-geom = scipy.io.loadmat('./matlabcode/geomFile_c1.mat')
+geom_c1 = scipy.io.loadmat('./matlabcode/geomFile_c1.mat')
+geom_c2 = scipy.io.loadmat('./matlabcode/geomFile_c2.mat')
 
 #get datetime elements from filename
 filenameElements = snapFile.split('.')
 epoch = filenameElements[0]
 dayOfWeek = filenameElements[1]
 shortMonth = filenameElements[2]
+month = time.strptime(shortMonth, '%b').tm_mon
 dayHourSecond = filenameElements[3]
 day = dayHourSecond.split('_')[0]
 hour = dayHourSecond.split('_')[1]
-second = dayHourSecond.split('_')[2]
+minute = dayHourSecond.split('_')[2]
+second = dayHourSecond.split('_')[3]
 year = filenameElements[5]
+imgDatetimeStr = f'{year}-{month}-{day} {hour}:{minute}:{second}'
+imgDatetime = datetime.datetime.strptime(imgDatetimeStr, "%Y-%m-%d %H:%M:%S")
 
 ###display image
 ##plt.imshow(snap)
@@ -160,10 +166,6 @@ for i, elem in enumerate(profileZ):
     if (elem == np.nan) or (elem == None):
         profileZ[i] = 0
 
-##profileX = int(profileX)
-##profileY = int(profileY)
-##profileZ = int(profileZ)
-
 uniqueZ = np.unique(profileZ)
 a, b = np.histogram(profileZ, bins=uniqueZ)
 mult = np.argwhere(a > 1)
@@ -182,4 +184,28 @@ for i in range(0, len(mult)):
 
 uniqueZ = np.unique(profileZ)
 a, b = np.histogram(profileZ, bins=uniqueZ)
-mult = np.argwhere(a > 1)  
+mult = np.argwhere(a > 1)
+
+lat = 27.796216949206798
+lon = -82.796102542950635
+
+all_twl = scipy.io.loadmat('./matlabcode/all_TWL_forecast.mat')
+Rtime = all_twl['all_twl']['forecastTime']
+Rrunup05 = all_twl['all_twl']['runup05']
+Rrunup = all_twl['all_twl']['runup']
+Rrunup95 = all_twl['all_twl']['runup95']
+Rtwl05 = all_twl['all_twl']['twl05']
+Rtwl = all_twl['all_twl']['twl']
+Rtwl95 = all_twl['all_twl']['twl95']
+Rslope = all_twl['all_twl']['slope']
+
+#only save madbeach data
+pindex = 1
+#find twl data that matches image date. Because of scipy loadmat(), array is 3-layer deep array
+for i in range(0, len(Rtime)):
+    #convert string to datetime object
+    RDatetime = datetime.datetime.strptime(Rtime[i][0][0], "%Y-%m-%d %H:%M:%S.0")
+
+    if (RDatetime < imgDatetime + datetime.timedelta(hours=1)) and (RDatetime > imgDatetime - datetime.timedelta(hours=1)):
+        print(RDatetime)
+
