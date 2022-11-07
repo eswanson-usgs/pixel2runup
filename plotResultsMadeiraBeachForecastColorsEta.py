@@ -118,7 +118,12 @@ def findUVnDOF(betas, xyz, lcp):
     '''
 
     P = lcpBeta2P(lcp, betas)
-    
+
+    onesColumn = np.ones(shape=(1, xyz.shape[0]))
+    xyzStack = np.concatenate((xyz, onesColumn),axis=0)
+    print(xyzStack)
+    print(xyzStack.shape)
+
     
 def lcpBeta2P(lcp, betas):
     '''
@@ -354,7 +359,7 @@ for i in range(0, len(num)):
     TWLy = num[i]*np.ones(len(TWLx))
 
     ###***world image coordinates***
-    xyz = [profileX, profileY, profileZ]
+    xyz = np.array([profileX, profileY, profileZ])
     #use squeeze() to get rid of unnecessary dimensions
     betas = geom_c1['betas'].squeeze()
 
