@@ -11,6 +11,7 @@ import scipy.io
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy import random
+from scipy.interpolate import interp1d
 
 ### FUNCTIONS ###
 def coordSys_madbeach(E, N):
@@ -41,6 +42,7 @@ def coordSys_madbeach(E, N):
     X,Y = xyRotate(E, N, theta, xo=E0, yo=N0)
 
     return X,Y
+
 
 def xyRotate(x, y, theta, xo=0, yo=0):
     '''
@@ -78,17 +80,126 @@ def xyRotate(x, y, theta, xo=0, yo=0):
     YR = out[0:len(y), 1]
 
     return XR,YR
-    
-    
 
+
+def findUVnDOF(betas, xyz, lcp):
+    '''
+    [UV] = findUVnDOF(beta, xyz, lcp)
+    
+    computes the distorted UV coordinates that correspond to a set of xyz
+    points where the extrinsic parameters are specified by beta
+    There are numerous options for beta, depending on what is known or not 
+    known.  xyz is assumed to be an Nx3 list of world coordinates
+    beta options
+      length 6 (6 dof)    - [xCam yCam zCam azimuth tilt roll]
+      length 5 (5 dof)    - [xCam yCam zCam azimuth tilt]
+      length 3 (3 dof)    - [azimuth tilt roll]
+      length 2 (2 dof)    - [azimuth tilt]
+    
+    When a beta is less than 6, the missing parameters are assumed to be
+    passed as global variables in a structure lcp.lcp, .knownFlags and 
+    .knowns where the knowns are listed in their natural order.  
+    This structure is passed as an optional third argument in the
+    function call normally.  However, if this routine is called as the forward 
+    model in nlinfit, only two input arguments are allowed.  In that case,
+    the globally-passed version, g2, is used to fill in these variables.
+    If beta is a 1x6 vector, the global information is still needed for the
+    lcp structure.
+    
+    NOTE - this returns DISTORTED COORDINATES.  THEY ARE ALSO RETURNED AS A
+    COLUMN VECTOR of U(:); V(:) for use with nlinfit!
+
+    Inputs:
+        beta (np.array) - numpy array of extrinsic parameters (floats)
+        xyz  (list) - list of numpy arrays of xyz coordinates to be converted to UV
+        lcp (dict) - dictionary of values used for moving between real world and pixel coordinates
+    Outputs:
+        UV (    ) - UV coordinates
+    '''
+
+    P = lcpBeta2P(lcp, betas)
+    
+    
+def lcpBeta2P(lcp, betas):
+    '''
+    Create a P matric from the lcp and beta. Used by findUV6DOF() and findXYZnDOF and to make
+    things for pixel geometry toolbox.
+
+    Inputs:
+        lcp (dict) - dictionary of values used for moving between real world and pixel coordinates
+        betas (np.array) - numpy array of extrinsic parameters (floats)
+    Ouputs:
+        P (np.array) - 3x3 P matrix
+    '''
+
+    #because of way lcp variables are stored in .mat files, have to use weird indexing to get number value. e.g. lcp['fx']['fx'][0][0]
+    K = np.array([[lcp['fx']['fx'][0][0], 0, lcp['c0U']['c0U'][0][0]], [0, -1 * lcp['fy']['fy'][0][0], lcp['c0V']['c0V'][0][0]], [0, 0, 1]])
+
+    R = angles2R(betas[3], betas[4], betas[5])
+    #equivalent to -betas(1:3)' in matlab
+    negativeTranspose = np.atleast_2d(-betas[0:3]).T
+    IC = np.concatenate((np.eye(3), negativeTranspose), axis=1)
+    KR = np.matmul(K, R)
+    P = np.matmul(KR, IC)
+    P = np.divide(P, P[2, 3])
+
+    return P
+
+
+def angles2R(a, t, r):
+    '''
+    Makes rotation matrix from input azimuth, tilt, and swing (roll)
+
+    Inputs:
+        a (float) - azimuth
+        t (float) - tilt
+        r (float) - roll
+    Outputs:
+        R (np.array) - 3x3 rotation matrix
+    '''
+    
+    R = np.ndarray(shape=(3,3))
+    R[0, 0] = np.cos(a) * np.cos(r) + np.sin(a) * np.cos(t) * np.sin(r)
+    R[0, 1] = -np.cos(r) * np.sin(a) + np.sin(r) * np.cos(t) * np.cos(a)
+    R[0, 2] = np.sin(r) * np.sin(t)
+    R[1, 0] = -np.sin(r) * np.cos(a) + np.cos(r) * np.cos(t) * np.sin(a)
+    R[1, 1] = np.sin(r) * np.sin(a) + np.cos(r) * np.cos(t) * np.cos(a)
+    R[1, 2] = np.cos(r) * np.sin(t)
+    R[2, 0] = np.sin(t) * np.sin(a)
+    R[2, 1] = np.sin(t) * np.cos(a)
+    R[2, 2] = -np.cos(t)
+    return R
+
+    
 ### MAIN ###
-#load image data
+#load image
 snapFile = '1663246800.Thu.Sep.15_13_00_00.GMT.2022.madbeach.c1.snap.jpg'
 timexFile = '1663246800.Thu.Sep.15_13_00_00.GMT.2022.madbeach.c1.timex.jpg'
 snap = plt.imread(snapFile)
 timex = plt.imread(timexFile)
+
+#load data
 geom_c1 = scipy.io.loadmat('./matlabcode/geomFile_c1.mat')
 geom_c2 = scipy.io.loadmat('./matlabcode/geomFile_c2.mat')
+lcp = {}
+lcp['c0U'] = scipy.io.loadmat('./matlabcode/globals/c0U.mat')
+lcp['c0V'] = scipy.io.loadmat('./matlabcode/globals/c0V.mat')
+lcp['d1'] = scipy.io.loadmat('./matlabcode/globals/d1.mat')
+lcp['d2'] = scipy.io.loadmat('./matlabcode/globals/d2.mat')
+lcp['d3'] = scipy.io.loadmat('./matlabcode/globals/d3.mat')
+lcp['dx'] = np.array(scipy.io.loadmat('./matlabcode/globals/dx.mat'))
+lcp['dy'] = np.array(scipy.io.loadmat('./matlabcode/globals/dy.mat'))
+lcp['fr'] = np.array(scipy.io.loadmat('./matlabcode/globals/fr.mat'))
+lcp['fx'] = scipy.io.loadmat('./matlabcode/globals/fx.mat')
+lcp['fy'] = scipy.io.loadmat('./matlabcode/globals/fy.mat')
+lcp['NU'] = scipy.io.loadmat('./matlabcode/globals/NU.mat')
+lcp['NV'] = scipy.io.loadmat('./matlabcode/globals/NV.mat')
+lcp['r']= np.array(scipy.io.loadmat('./matlabcode/globals/r.mat'))
+lcp['t1'] = scipy.io.loadmat('./matlabcode/globals/t1.mat')
+lcp['t2'] = scipy.io.loadmat('./matlabcode/globals/t2.mat')
+lcp['x'] = np.array(scipy.io.loadmat('./matlabcode/globals/x.mat'))
+lcp['y'] = np.array(scipy.io.loadmat('./matlabcode/globals/y.mat'))
+
 
 #get datetime elements from filename
 filenameElements = snapFile.split('.')
@@ -200,7 +311,7 @@ Rtwl95 = all_twl['all_twl']['twl95']
 Rslope = all_twl['all_twl']['slope']
 
 #only save madbeach data
-pindex = 1
+pindex = 0
 #find twl data that matches image date. Because of scipy loadmat(), array is 3-layer deep array
 for i in range(0, len(Rtime)):
     #convert string to datetime object
@@ -211,4 +322,42 @@ for i in range(0, len(Rtime)):
 
 #loop through alongshore locations
 num = [x for x in range(-25, -451, -1)]
+for i in range(0, len(num)):
+    m = Rslope[tindex, pindex]
+
+    R2z = []
+    R2z.append(Rrunup05[tindex, pindex])
+    R2z.append(Rrunup[tindex, pindex])
+    R2z.append(Rrunup95[tindex, pindex])
+
+    #interp1d returns a 1d interpolation function (interpolate)
+    interpolate = interp1d(profileZ, profileX)
+
+    R2x = []
+    interpRX = interpolate(R2z)
+    #interpX is array with shape (3, 1, 1). Need to extract individual values and append to R2x
+    R2x.append(interpRX[0][0][0])
+    R2x.append(interpRX[1][0][0])
+    R2x.append(interpRX[2][0][0])
+    R2y = num[i]*np.ones(len(R2x))
+
+    TWLz = []
+    TWLz.append(Rtwl05[tindex,pindex])
+    TWLz.append(Rtwl[tindex,pindex])
+    TWLz.append(Rtwl05[tindex,pindex])
+
+    TWLx = []
+    interpTWLX = interpolate(TWLz)
+    TWLx.append(interpTWLX[0][0][0])
+    TWLx.append(interpTWLX[1][0][0])
+    TWLx.append(interpTWLX[2][0][0])
+    TWLy = num[i]*np.ones(len(TWLx))
+
+    ###***world image coordinates***
+    xyz = [profileX, profileY, profileZ]
+    #use squeeze() to get rid of unnecessary dimensions
+    betas = geom_c1['betas'].squeeze()
+
+    if i == 0:
+        findUVnDOF(betas, xyz, lcp)    
 
