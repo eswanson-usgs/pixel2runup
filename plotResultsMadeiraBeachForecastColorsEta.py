@@ -11,7 +11,7 @@ import scipy.io
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy import random
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, interp2d
 
 ### FUNCTIONS ###
 def coordSys_madbeach(E, N):
@@ -40,7 +40,6 @@ def coordSys_madbeach(E, N):
     N0 = 3075922.21413775
 
     X,Y = xyRotate(E, N, theta, xo=E0, yo=N0)
-
     return X,Y
 
 
@@ -78,7 +77,6 @@ def xyRotate(x, y, theta, xo=0, yo=0):
 
     XR = out[0:len(x), 0]
     YR = out[0:len(y), 1]
-
     return XR,YR
 
 
@@ -119,11 +117,15 @@ def findUVnDOF(betas, xyz, lcp):
 
     P = lcpBeta2P(lcp, betas)
 
-    onesColumn = np.ones(shape=(1, xyz.shape[0]))
+    onesColumn = np.ones(shape=(1, xyz.shape[1]))
     xyzStack = np.concatenate((xyz, onesColumn),axis=0)
-    print(xyzStack)
-    print(xyzStack.shape)
+    UV = np.matmul(P, xyzStack)
 
+    #equivalent to repmat(UV(3,:),3,1) in Matlab
+    repmat = np.tile(UV[2],(3,1))
+    UV = np.divide(UV, repmat)
+
+    U,V = distort(UV[0], UV[1], lcp)
     
 def lcpBeta2P(lcp, betas):
     '''
@@ -147,7 +149,6 @@ def lcpBeta2P(lcp, betas):
     KR = np.matmul(K, R)
     P = np.matmul(KR, IC)
     P = np.divide(P, P[2, 3])
-
     return P
 
 
@@ -175,6 +176,61 @@ def angles2R(a, t, r):
     R[2, 2] = -np.cos(t)
     return R
 
+def distort(u, v, lcp):
+    '''
+    converts from undistorted to distorted pixel locations for a DJI phantom.
+    This is based on equations from the Caltech lens distortion manuals.  
+    lcp contains all the relevant intrinsic as well as radial and tangential
+    distortion coefficients.
+
+    where UV is a matrix of 2 columns [U, V].
+
+    Inputs:
+       u (np.array) - undistorted pxiel locations (rows)
+       u (np.array) - undistorted pxiel locations (columns)
+       lcp (dict) -  dictionary of values used for moving between real world and pixel coordinates
+    Outputs:
+        ud (np.array) - distorted pixel coordinates (rows)
+        vd (np.array) - distorted pixel coordinates (columns)
+    '''
+    
+    #find the range dependent correction factor, fr.
+    
+    x = (u - lcp['c0U']['c0U'][0][0]) / lcp['fx']['fx'][0][0]
+    y = (v - lcp['c0V']['c0V'][0][0]) / lcp['fy']['fy'][0][0]
+    r2 = np.multiply(x, x) + np.multiply(y, y)
+    
+    #need to convert np.object lcp to dict with tolist(), then unpack values r and fr, then squeeze into 1 dimension
+    lcp_r = lcp['r'].tolist()
+    lcp_r = lcp_r['r']
+    lcp_r = lcp_r.squeeze()
+    lcp_fr = lcp['fr'].tolist()
+    lcp_fr = lcp_fr['fr']
+    lcp_fr = lcp_fr.squeeze()
+    #can interp1d creates function, which can be called in the same line
+    fr = interp1d(lcp_r, lcp_fr)(np.sqrt(r2))
+
+    #now do 2d interpolation for dx, dy
+    lcp_x = lcp['x'].tolist()
+    lcp_x = lcp_x['x']
+    lcp_x = lcp_x.squeeze()
+    lcp_y = lcp['y'].tolist()
+    lcp_y = lcp_y['y']
+    lcp_y = lcp_y.squeeze()
+    lcp_dx = lcp['dx'].tolist()
+    lcp_dx = lcp_dx['dx']
+    lcp_dx = lcp_dx.squeeze()
+    lcp_dy = lcp['dy'].tolist()
+    lcp_dy = lcp_dy['dy']
+    lcp_dy = lcp_dy.squeeze()
+    dx = interp2d(lcp_x, lcp_y, lcp_dx)(x, y)
+    print(dx)
+    print(dx.shape)
+
+    
+    return None, None
+
+    
     
 ### MAIN ###
 #load image
