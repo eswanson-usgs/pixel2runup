@@ -223,9 +223,11 @@ def distort(u, v, lcp):
     lcp_dy = lcp['dy'].tolist()
     lcp_dy = lcp_dy['dy']
     lcp_dy = lcp_dy.squeeze()
-    dx = interp2d(lcp_x, lcp_y, lcp_dx)(x, y)
-    print(dx)
-    print(dx.shape)
+    print(lcp_dx)
+    print(lcp_dx.shape)
+##    dx = interp2d(lcp_x, lcp_y, lcp_dx)(x, y)
+##    print(dx)
+##    print(dx.shape)
 
     
     return None, None
@@ -332,6 +334,9 @@ profileE = np.array(profileE)
 profileN = np.array(profileN)
 profileZ = np.array(profileZ)
 profileX, profileY = coordSys_madbeach(profileE, profileN)
+
+# estimating line 60 position to be -87.7 based on surveys that measured line 60
+profileY = np.ones(shape=profileY.shape) * (-87.7)
 
 #change NaN to 0s
 for i, elem in enumerate(profileZ):
