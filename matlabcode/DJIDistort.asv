@@ -21,3 +21,4 @@ x2 = x.*fr + dx;
 y2 = y.*fr + dy;
 ud = x2*lcp.fx+lcp.c0U;       % answer in chip pixel units
 vd = y2*lcp.fy+lcp.c0V;
+disp('hi')

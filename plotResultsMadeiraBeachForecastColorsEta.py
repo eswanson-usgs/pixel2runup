@@ -11,7 +11,7 @@ import scipy.io
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy import random
-from scipy.interpolate import interp1d, interp2d
+from scipy.interpolate import interp1d, interp2d, interpn
 
 ### FUNCTIONS ###
 def coordSys_madbeach(E, N):
@@ -126,6 +126,9 @@ def findUVnDOF(betas, xyz, lcp):
     UV = np.divide(UV, repmat)
 
     U,V = distort(UV[0], UV[1], lcp)
+    UV = np.concatenate((U, V))
+    return UV
+
     
 def lcpBeta2P(lcp, betas):
     '''
@@ -213,24 +216,24 @@ def distort(u, v, lcp):
     #now do 2d interpolation for dx, dy
     lcp_x = lcp['x'].tolist()
     lcp_x = lcp_x['x']
-    lcp_x = lcp_x.squeeze()
     lcp_y = lcp['y'].tolist()
     lcp_y = lcp_y['y']
-    lcp_y = lcp_y.squeeze()
     lcp_dx = lcp['dx'].tolist()
     lcp_dx = lcp_dx['dx']
     lcp_dx = lcp_dx.squeeze()
     lcp_dy = lcp['dy'].tolist()
     lcp_dy = lcp_dy['dy']
     lcp_dy = lcp_dy.squeeze()
-    print(lcp_dx)
-    print(lcp_dx.shape)
-##    dx = interp2d(lcp_x, lcp_y, lcp_dx)(x, y)
-##    print(dx)
-##    print(dx.shape)
 
-    
-    return None, None
+    #creates square grid but only want dx and dy to be 1 dimensional, so take last element
+    dx = interp2d(lcp_x, lcp_y, lcp_dx)(x, y)[0]
+    dy = interp2d(lcp_x, lcp_y, lcp_dy)(x,y)[0]
+
+    x2 = np.multiply(x, fr) + dx
+    y2 = np.multiply(y, fr) + dy
+    ud = (x2 * lcp['fx']['fx'][0][0]) + lcp['c0U']['c0U'][0][0]      #answer in chip pixel units
+    vd = (y2 * lcp['fy']['fy'][0][0]) + lcp['c0V']['c0V'][0][0]
+    return ud, vd
 
     
     
@@ -423,7 +426,5 @@ for i in range(0, len(num)):
     xyz = np.array([profileX, profileY, profileZ])
     #use squeeze() to get rid of unnecessary dimensions
     betas = geom_c1['betas'].squeeze()
-
-    if i == 0:
-        findUVnDOF(betas, xyz, lcp)    
+    UV = findUVnDOF(betas, xyz, lcp)    
 
