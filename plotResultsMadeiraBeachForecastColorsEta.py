@@ -211,7 +211,7 @@ def distort(u, v, lcp):
     lcp_fr = lcp_fr['fr']
     lcp_fr = lcp_fr.squeeze()
     #can interp1d creates function, which can be called in the same line
-    fr = interp1d(lcp_r, lcp_fr)(np.sqrt(r2))
+    fr = interp1d(lcp_r, lcp_fr, fill_value='extrapolate')(np.sqrt(r2))
 
     #now do 2d interpolation for dx, dy
     lcp_x = lcp['x'].tolist()
@@ -395,9 +395,10 @@ for i in range(0, len(num)):
     m = Rslope[tindex, pindex]
 
     R2z = []
-    R2z.append(Rrunup05[tindex, pindex])
-    R2z.append(Rrunup[tindex, pindex])
-    R2z.append(Rrunup95[tindex, pindex])
+    R2z.append(Rrunup05[tindex, pindex][0][0])
+    R2z.append(Rrunup[tindex, pindex][0][0])
+    R2z.append(Rrunup95[tindex, pindex][0][0])
+    R2z = np.array(R2z)
 
     #interp1d returns a 1d interpolation function (interpolate)
     interpolate = interp1d(profileZ, profileX)
@@ -405,9 +406,10 @@ for i in range(0, len(num)):
     R2x = []
     interpRX = interpolate(R2z)
     #interpX is array with shape (3, 1, 1). Need to extract individual values and append to R2x
-    R2x.append(interpRX[0][0][0])
-    R2x.append(interpRX[1][0][0])
-    R2x.append(interpRX[2][0][0])
+    R2x.append(interpRX[0])
+    R2x.append(interpRX[1])
+    R2x.append(interpRX[2])
+    R2x = np.array(R2x)
     R2y = num[i]*np.ones(len(R2x))
 
     TWLz = []
@@ -423,8 +425,22 @@ for i in range(0, len(num)):
     TWLy = num[i]*np.ones(len(TWLx))
 
     ###***world image coordinates***
+
+    #-- profile -- 
     xyz = np.array([profileX, profileY, profileZ])
     #use squeeze() to get rid of unnecessary dimensions
     betas = geom_c1['betas'].squeeze()
-    UV = findUVnDOF(betas, xyz, lcp)    
+    UV = findUVnDOF(betas, xyz, lcp)
+    UV = np.round(UV)
+    UV = np.reshape(UV, (2, int(len(UV)/2)))
+    UV = UV.T
+    profileU = UV[:,0]
+    profileV = UV[:,1]
+
+    #-- R2 --
+    print(i)
+    xyz = np.array([R2x, R2y, R2z])
+    UV = findUVnDOF(betas, xyz, lcp)
+
+    
 
