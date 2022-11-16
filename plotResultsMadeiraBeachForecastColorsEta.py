@@ -125,7 +125,7 @@ def findUVnDOF(betas, xyz, lcp):
     repmat = np.tile(UV[2],(3,1))
     UV = np.divide(UV, repmat)
 
-    U,V = distort(UV[0], UV[1], lcp)
+    U,V = distortUV(UV[0], UV[1], lcp)
     UV = np.concatenate((U, V))
     return UV
 
@@ -179,7 +179,7 @@ def angles2R(a, t, r):
     R[2, 2] = -np.cos(t)
     return R
 
-def distort(u, v, lcp):
+def DJIdistort(u, v, lcp):
     '''
     converts from undistorted to distorted pixel locations for a DJI phantom.
     This is based on equations from the Caltech lens distortion manuals.  
@@ -190,7 +190,7 @@ def distort(u, v, lcp):
 
     Inputs:
        u (np.array) - undistorted pxiel locations (rows)
-       u (np.array) - undistorted pxiel locations (columns)
+       v (np.array) - undistorted pxiel locations (columns)
        lcp (dict) -  dictionary of values used for moving between real world and pixel coordinates
     Outputs:
         ud (np.array) - distorted pixel coordinates (rows)
@@ -235,6 +235,56 @@ def distort(u, v, lcp):
     vd = (y2 * lcp['fy']['fy'][0][0]) + lcp['c0V']['c0V'][0][0]
     return ud, vd
 
+
+def distortUV(U, V, lcp):
+    '''
+    This function distorts undistorted UV coordinates using distortion
+    models from from the Caltech lens distortion manuals.The function also
+    suggests whether the UVd coordinate is valid (not having tangential
+    distortion values bigger than what is at the corners and being within
+    the image).
+
+    Inputs:
+       U (np.array) - undistorted pxiel locations (rows)
+       V (np.array) - undistorted pxiel locations (columns)
+       lcp (dict) -  dictionary of values used for moving between real world and pixel coordinates
+    Outputs:
+        Ud (np.array) - distorted pixel coordinates (rows)
+        Vd (np.array) - distorted pixel coordinates (columns)
+    '''
+
+    NU = lcp['NU']['NU'][0][0]
+    NV = lcp['NV']['NV'][0][0]
+    c0U = lcp['c0U']['c0U'][0][0]
+    c0V = lcp['c0V']['c0V'][0][0]
+    fx = lcp['fx']['fx'][0][0]
+    fy = lcp['fy']['fy'][0][0]
+    d1 = lcp['d1']['d1'][0][0]
+    d2 = lcp['d2']['d2'][0][0]
+    d3 = lcp['d3']['d3'][0][0]
+    t1 = lcp['t1']['t1'][0][0]
+    t2 = lcp['t2']['t2'][0][0]
+
+    #normalize distances
+    x = (U - c0U) / fx
+    y = (V - c0V) / fy
+
+    #radial distortion
+    r2 = np.multiply(x, x) + np.multiply(y, y)
+    fr = 1 + (d1 * r2) + (d2 * np.multiply(r2, r2)) + d3 * (np.multiply(r2, np.multiply(r2, r2)))
+
+    #tangential distortion
+    dx = (2 * t1 * np.multiply(x,y)) + t2 * (r2 + (2 * np.multiply(x, x)))
+    dy = t1 * (r2 + (2 * np.multiply(y, y))) + (2 * t2 * np.multiply(x, y))
+
+    #apply Correction, answer in chip pixel units
+    xd = np.multiply(x, fr) + dx
+    yd = np.multiply(y, fr) + dy
+    Ud = (xd * fx) + c0U
+    Vd = (yd * fy) + c0V
+
+    return Ud, Vd
+    
     
     
 ### MAIN ###
@@ -426,7 +476,7 @@ for i in range(0, len(num)):
 
     ###***world image coordinates***
 
-    #-- profile -- 
+    #-- profile --
     xyz = np.array([profileX, profileY, profileZ])
     #use squeeze() to get rid of unnecessary dimensions
     betas = geom_c1['betas'].squeeze()
@@ -438,9 +488,15 @@ for i in range(0, len(num)):
     profileV = UV[:,1]
 
     #-- R2 --
-    print(i)
+    R2u = np.ndarray(shape=(3,len(num)))
+    R2v = np.ndarray(shape=(3,len(num)))
     xyz = np.array([R2x, R2y, R2z])
     UV = findUVnDOF(betas, xyz, lcp)
+    UV = np.round(UV)
+    UV = np.reshape(UV, (2, int(len(UV)/2)))
+    UV = UV.T
+    R2u[:,i] = UV[:,0]
+    R2v[:,i] = UV[:,1]
 
     
 
