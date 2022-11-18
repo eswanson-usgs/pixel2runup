@@ -463,15 +463,15 @@ for i in range(0, len(num)):
     R2y = num[i]*np.ones(len(R2x))
 
     TWLz = []
-    TWLz.append(Rtwl05[tindex,pindex])
-    TWLz.append(Rtwl[tindex,pindex])
-    TWLz.append(Rtwl05[tindex,pindex])
+    TWLz.append(Rtwl05[tindex,pindex][0][0])
+    TWLz.append(Rtwl[tindex,pindex][0][0])
+    TWLz.append(Rtwl05[tindex,pindex][0][0])
 
     TWLx = []
     interpTWLX = interpolate(TWLz)
-    TWLx.append(interpTWLX[0][0][0])
-    TWLx.append(interpTWLX[1][0][0])
-    TWLx.append(interpTWLX[2][0][0])
+    TWLx.append(interpTWLX[0])
+    TWLx.append(interpTWLX[1])
+    TWLx.append(interpTWLX[2])
     TWLy = num[i]*np.ones(len(TWLx))
 
     ###***world image coordinates***
@@ -488,8 +488,9 @@ for i in range(0, len(num)):
     profileV = UV[:,1]
 
     #-- R2 --
-    R2u = np.ndarray(shape=(3,len(num)))
-    R2v = np.ndarray(shape=(3,len(num)))
+    if i == 0:
+        R2u = np.ndarray(shape=(3,len(num)))
+        R2v = np.ndarray(shape=(3,len(num)))
     xyz = np.array([R2x, R2y, R2z])
     UV = findUVnDOF(betas, xyz, lcp)
     UV = np.round(UV)
@@ -497,6 +498,18 @@ for i in range(0, len(num)):
     UV = UV.T
     R2u[:,i] = UV[:,0]
     R2v[:,i] = UV[:,1]
+
+    #-- TWL --
+    if i == 0:
+        TWLu = np.ndarray(shape=(3,len(num)))
+        TWLv = np.ndarray(shape=(3,len(num)))
+    xyz = np.array([TWLx, TWLy, TWLz])
+    UV = findUVnDOF(betas, xyz, lcp)
+    UV = np.round(UV)
+    UV = np.reshape(UV, (2, int(len(UV)/2)))
+    UV = UV.T
+    TWLu[:,i] = UV[:,0]
+    TWLv[:,i] = UV[:,1]
 
     
 
