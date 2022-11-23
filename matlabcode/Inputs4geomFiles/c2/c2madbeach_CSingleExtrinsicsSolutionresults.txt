@@ -1,0 +1,30 @@
+Solved Extrinsics and NLinfit Error
+ x = 323057.3904 +- 0.11416
+ y = 3075921.9276 +- 0.14064
+ z = 19.8225 +- 0.13855
+ azimuth = 242.2203 +- 0.1592 degrees
+ tilt = 74.3563 +- 0.15778 degrees
+ swing = -4.9354 +- 0.14522 degrees
+ 
+Horizontal GCP Reprojection Error
+GCP Num \ X Err \  YErr
+1\0.023972\-0.09995
+2\-0.081725\-0.069238
+3\0.050716\0.10966
+16\0.034892\-0.032436
+17\-0.072052\-0.018963
+18\0.048628\0.02884
+19\0.018882\0.097826
+ 
+Finished Solution
+                    iopath: 'C:\Users\skarwandyar\Documents\ExtrinsicCalib_MadBeach2022\c2\C2_madbeach2022_IO.mat'
+                 gcpUvPath: 'C:\Users\skarwandyar\Documents\ExtrinsicCalib_MadBeach2022\c2\C2_madbeach2022_gcpUVdInitial.mat'
+                gcpXyzPath: 'C:\Users\skarwandyar\Documents\ExtrinsicCalib_MadBeach2022\c2\MadBEACH_C2gcps_042022.txt'
+                  gcpsUsed: [1 2 3 16 17 18 19]
+                   gcpRMSE: [0.0520 0.0743 0]
+                      gcps: [1×7 struct]
+    extrinsicsInitialGuess: [3.2306e+05 3.0759e+06 19.2300 4.0317 1.3439 0.0332]
+      extrinsicsKnownsFlag: [0 0 0 0 0 0]
+          extrinsicsUncert: [0.1142 0.1406 0.1386 0.0028 0.0028 0.0025]
+                 imagePath: 'C:\Users\skarwandyar\Documents\ExtrinsicCalib_MadBeach2022\c2\images_4_gcpSelection\imageGCP_c2.jpg'
+             worldCoordSys: 'NAD83(2011) UTM Zone 17N (m)'
