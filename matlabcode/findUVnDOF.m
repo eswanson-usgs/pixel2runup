@@ -47,7 +47,7 @@ P = lcpBeta2P( lcp, b2 );
 UV = P*[xyz'; ones(1,size(xyz,1))];
 UV = UV./repmat(UV(3,:),3,1);
 
-[U,V] = distortUV(UV(1,:),UV(2,:),lcp); 
+[U,V] = DJIDistort(UV(1,:),UV(2,:),lcp); 
 UV = [U; V];
 %
 %   Copyright (C) 2017  Coastal Imaging Research Network
