@@ -191,7 +191,7 @@ for i = 1:length(num)
     
     %---TWL
     xyz = [TWL.x;  TWL.y; TWL.z]';
-    UV = round(xyz2DistUV(intrinsics, extrinsics, xyz));
+    UV = round(xyz2DistUV(intrinsics,extrinsics, xyz);
     UV = reshape(UV,[],2);
     TWL.u(:,i) = UV(:,1);
     TWL.v(:,i) = UV(:,2);
@@ -272,67 +272,67 @@ print('-dpng', 'C:\Users\eswanson\OneDrive - DOI\Documents\GitHub\pixel2runup\fo
 % %legend('95% uncertainty band','Total Water Level Forecast','Observed Total Water Level', 'runup transect')
 % print('-dpng', ['C:\Users\mpalmsten\OneDrive - DOI\projects\TWL\MadeiraBeach\ForecastOnImage\SnapTWLForecastAndData',num2str(year), num2str(month), num2str(day), num2str(hr1), '.png'])
 
-figure(2)
-%plot(wl.u(1),wl.v(1),'bo','markersize',10,'markerfacecolor','b')
-%plot(UV_all(:,1),UV_all(:,2),'linewidth',1, 'color','b')
+% figure(2)
+% %plot(wl.u(1),wl.v(1),'bo','markersize',10,'markerfacecolor','b')
+% %plot(UV_all(:,1),UV_all(:,2),'linewidth',1, 'color','b')
 % plot(wl.u(2),wl.v(2),'go','markersize',10,'markerfacecolor','g')
-%plot(wl.u(3),wl.v(3),'mo','markersize',10,'markerfacecolor','m')
-
-%plot(wl.u(4),wl.v(4),'bs','markersize',10);
-%plot(wl.u(5),wl.v(5),'bo','markersize',10);
-
-foo = gca;
-foo.XTick = '';
-foo.YTick = '';
-print('-dpng', ['C:\Users\mpalmsten\OneDrive - DOI\projects\TWL\MadeiraBeach\ForecastOnImage\TimexTWLForecastAndData',num2str(year), num2str(month), num2str(day), num2str(hr1), '.png'])
-
-%legend('95% uncertainty band','total water level forecast','runup transect','observed total water level')
-%print -dpng C:\Users\mpalmsten\Documents\presentations\StPeteScienceFest\2021\TWL2020091616.png
-%legend('','model TWL','model R2','meas R2','meas TWL','meas X2','meas Xi2');%,'meas tide')
-
-% keyboard
-% if 1
-%     saveas(figure(1),['\\gs\StPetersburgFL-G\NACCH\Imagery\madbeach\plots\snapshot_R2_',num2str(year),'_',monthNum,'_',dayNum,'_',num2str(hr1+1),'00'],'png')
-% end
-
-camera.x = geom.betas(1);
-camera.y = geom.betas(2);
-camera.z = geom.betas(3);
-
+% %plot(wl.u(3),wl.v(3),'mo','markersize',10,'markerfacecolor','m')
+% 
+% %plot(wl.u(4),wl.v(4),'bs','markersize',10);
+% %plot(wl.u(5),wl.v(5),'bo','markersize',10);
+% 
+% foo = gca;
+% foo.XTick = '';
+% foo.YTick = '';
+% print('-dpng', ['C:\Users\mpalmsten\OneDrive - DOI\projects\TWL\MadeiraBeach\ForecastOnImage\TimexTWLForecastAndData',num2str(year), num2str(month), num2str(day), num2str(hr1), '.png'])
+% 
+% %legend('95% uncertainty band','total water level forecast','runup transect','observed total water level')
+% %print -dpng C:\Users\mpalmsten\Documents\presentations\StPeteScienceFest\2021\TWL2020091616.png
+% %legend('','model TWL','model R2','meas R2','meas TWL','meas X2','meas Xi2');%,'meas tide')
+% 
+% % keyboard
+% % if 1
+% %     saveas(figure(1),['\\gs\StPetersburgFL-G\NACCH\Imagery\madbeach\plots\snapshot_R2_',num2str(year),'_',monthNum,'_',dayNum,'_',num2str(hr1+1),'00'],'png')
+% % end
+% 
+% camera.x = geom.betas(1);
+% camera.y = geom.betas(2);
+% camera.z = geom.betas(3);
+% 
 % % [xiRunup,yiRunup,ziRunup]=computeRunupMapped2Topo(Runup.X2,-90,0,topo.x,topo.y,topo.z,camera.x,camera.y,camera.z);
 % [xiRunup,yiRunup,ziRunup]=computeRunupMapped2Topo(Runup.X2,-90,0,profile.x,profile.y,profile.z,camera.x,camera.y,camera.z);
-
-
-figure;
-subplot(2,1,1);
-plot(profile.x,profile.z,'k','linewidth',2);
-hold on
+% 
+% 
+% figure;
+% subplot(2,1,1);
+% plot(profile.x,profile.z,'k','linewidth',2);
+% hold on
 % lh(1)=plot(Runup.X2,wl.z(4),'bs');
 % lh(2)=plot(Runup.Xi2,Runup.R2,'bo');
 % lh(3)=plot(wl.x(1),wl.z(1),'c*');
 % lh(4)=plot(wl.x(2),wl.z(2),'r*');
-lh(5)=plot(R2.x(2), R2.z(2),'c^');
-lh(6)=plot(TWL.x(2), TWL.z(2),'r^');
+% lh(5)=plot(R2.x(2), R2.z(2),'c^');
+% lh(6)=plot(TWL.x(2), TWL.z(2),'r^');
 % lh(7)=plot(interp1(profile.z,profile.x,Runup.param.R2),Runup.param.R2,'ms');
-plot(xiRunup,ziRunup,'kp');
-set(gca,'xdir','reverse');
-legend(lh,'X2%','X2% (interp)','R2% (z interp to x-profile)','TWL (z interp to x-profile)',...
-    'R2% (model)','TWL (model)','Stockdon param','location','southeast');
-title([datestr(R.time(tindex)) 'GMT']);
-xlabel('cross-shore distance');ylabel('elevation')
-
-clear lh
-subplot(2,1,2);
-plot(profile.u,profile.v,'k','linewidth',2);
-hold on
+% plot(xiRunup,ziRunup,'kp');
+% set(gca,'xdir','reverse');
+% legend(lh,'X2%','X2% (interp)','R2% (z interp to x-profile)','TWL (z interp to x-profile)',...
+%     'R2% (model)','TWL (model)','Stockdon param','location','southeast');
+% title([datestr(R.time(tindex)) 'GMT']);
+% xlabel('cross-shore distance');ylabel('elevation')
+% 
+% clear lh
+% subplot(2,1,2);
+% plot(profile.u,profile.v,'k','linewidth',2);
+% hold on
 % lh(1)=plot(wl.u(1),wl.v(1),'c*');
 % lh(2)=plot(wl.u(2),wl.v(2),'r*');
-iloc=find(num==-90);
-lh(3)=plot(R2.u(2,iloc), R2.v(2,iloc),'c^');
-lh(4)=plot(TWL.u(2,iloc), TWL.v(2,iloc),'r^');
+% iloc=find(num==-90);
+% lh(3)=plot(R2.u(2,iloc), R2.v(2,iloc),'c^');
+% lh(4)=plot(TWL.u(2,iloc), TWL.v(2,iloc),'r^');
 % plot(wl.u(4),wl.v(4),'bs');
 % plot(wl.u(5),wl.v(5),'bo');
-xlabel('x-position on image');ylabel('y-position on image')
-legend(lh,'R2% (z interp to x-profile)','TWL (z interp to x-profile)','R2% (model)','TWL (model)','location','southeast');
-
-
+% xlabel('x-position on image');ylabel('y-position on image')
+% legend(lh,'R2% (z interp to x-profile)','TWL (z interp to x-profile)','R2% (model)','TWL (model)','location','southeast');
+% 
+% 
