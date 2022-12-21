@@ -30,16 +30,16 @@ myepoch = num2str(datenum2epoch(datenum(year,month,day,hr1,0,0)));
 %*** 1. image data
 %load(['\\gs\StPetersburgFL-G\Coastal_Change_Hazards\Archive\Data\2016\2016-363-DD_20161028\madbeach\',num2str(year),'\c1\',yearday,'_',monthName,'.',dayNum,'\',myepoch,'.',dayName,'.',monthName,'.',dayNum,'_',num2str(hr1),'_00_00.GMT.',num2str(year),'.madbeach.c1.snap.mat']);
 %load(['\\gs\StPetersburgFL-G\Coastal_Change_Hazards\Archive\Data\2016\2016-363-DD_20161028\madbeach\',num2str(year),'\c1\',yearday,'_',monthName,'.',dayNum,'\',myepoch,'.',dayName,'.',monthName,'.',dayNum,'_',num2str(hr1),'_00_00.GMT.',num2str(year),'.madbeach.c1.timex.mat']);
-geom = load('geomFile_c1.mat');
+geom = load('geomFile_20170217.mat');
 
 figure(1);
-image1 = imread('1663246800.Thu.Sep.15_13_00_00.GMT.2022.madbeach.c1.snap.jpg');
+image1 = imread('1487430000.Sat.Feb.18_15_00_00.GMT.2017.madbeach.c1.snap.jpg');
 imagesc(image1)
 %imshow('1663246800.Thu.Sep.15_13_00_00.GMT.2022.madbeach.c1.snap.jpg');
 %print('-dpng',['C:\Users\mpalmsten\OneDrive - DOI\projects\TWL\MadeiraBeach\ForecastOnImage\Snap',num2str(year), num2str(month), num2str(day), num2str(hr1), '.png'])
 
 figure(2);
-image2 = imread('1663246800.Thu.Sep.15_13_00_00.GMT.2022.madbeach.c1.timex.jpg');
+image2 = imread('1487430000.Sat.Feb.18_15_00_00.GMT.2017.madbeach.c1.timex.jpg');
 imagesc(image2)
 %imshow('1663246800.Thu.Sep.15_13_00_00.GMT.2022.madbeach.c1.timex.jpg')
 % print('-dpng', ['C:\Users\mpalmsten\OneDrive - DOI\projects\TWL\MadeiraBeach\ForecastOnImage\Timex',num2str(year), num2str(month), num2str(day), num2str(hr1), '.png'])
@@ -54,17 +54,18 @@ for ii=1:length(surveys_all); surveys = [surveys; surveys_all(ii).name];end %spe
 tmp=((datenum(year,month,day)-datenum(surveys,'yyyymmdd')));
 ii=find(tmp>0,1,'last'); %find most recent topo
 if ii==4 || ii>=6
-ans = dlmread(['\\gs\StPetersburgFL-G\NACCH\Imagery\madbeach\surveys\walking\20221005\line60.xyz']); %%%%%%%changing to 9/15/22 for testing
+% ans = dlmread(['\\gs\StPetersburgFL-G\NACCH\Imagery\madbeach\surveys\walking\20221005\line60.xyz']);
+ans = dlmread(['\\gs\StPetersburgFL-G\NACCH\Imagery\madbeach\surveys\walking\20170217\line59.xyz']);
 profile.E=ans(:,1);profile.N=ans(:,2);
 [profile.x,profile.y]=coordSys_madbeach(profile.E,profile.N);
 profile.z=ans(:,3);
 elseif ii==1 || ii==2 || ii==3 || ii==5
 disp('hi')
-dlmread(['\\gs\StPetersburgFL-G\NACCH\Imagery\madbeach\surveys\walking\20221005\line60.xyz']);
+dlmread(['\\gs\StPetersburgFL-G\NACCH\Imagery\madbeach\surveys\walking\20170217\line59.xyz']);
 p1.E=ans(:,1);p1.N=ans(:,2);
 [p1.x,p1.y]=coordSys_madbeach(p1.E,p1.N);
 p1.z=ans(:,3);
-dlmread(['\\gs\StPetersburgFL-G\NACCH\Imagery\madbeach\surveys\walking\20221005\line60.xyz']);
+dlmread(['\\gs\StPetersburgFL-G\NACCH\Imagery\madbeach\surveys\walking\20170217\line59.xyz']);
 p2.E=ans(:,1);p2.N=ans(:,2);
 [p2.x,p2.y]=coordSys_madbeach(p2.E,p2.N);
 p2.z=ans(:,3);
@@ -132,21 +133,22 @@ R.slope=cat(1,all_twl.slope)';
 pindex = 1; % this file only saves the MadBeach TWL data
 tindex = find(R.time>datenum(year,month,day,hr1-1,0,0) & R.time<datenum(year,month,day,hr1+1,0,0));
 
-%Aadded by Eric - 11/23. Manually set instrincs array from meta.globals.lcp
-%struct as input to xyzDistUV()
-intrinsics = zeros(1,11);
-intrinsics(1) = meta.globals.lcp.NU;
-intrinsics(2) = meta.globals.lcp.NV;
-intrinsics(3) = meta.globals.lcp.c0U;
-intrinsics(4) = meta.globals.lcp.c0V;
-intrinsics(5) = meta.globals.lcp.fx;
-intrinsics(6) = meta.globals.lcp.fy;
-intrinsics(7) = meta.globals.lcp.d1;
-intrinsics(8) = meta.globals.lcp.d2;
-intrinsics(9) = meta.globals.lcp.d3;
-intrinsics(10) = meta.globals.lcp.t1;
-intrinsics(11) = meta.globals.lcp.t2;
-extrinsics = geom.betas;
+% %Aadded by Eric - 11/23. Manually set instrincs array from meta.globals.lcp
+% %struct as input to xyzDistUV()
+% load('geomFile_c1.mat')
+% intrinsics = zeros(1,11);
+% intrinsics(1) = meta.globals.lcp.NU;
+% intrinsics(2) = meta.globals.lcp.NV;
+% intrinsics(3) = meta.globals.lcp.c0U;
+% intrinsics(4) = meta.globals.lcp.c0V;
+% intrinsics(5) = meta.globals.lcp.fx;
+% intrinsics(6) = meta.globals.lcp.fy;
+% intrinsics(7) = meta.globals.lcp.d1;
+% intrinsics(8) = meta.globals.lcp.d2;
+% intrinsics(9) = meta.globals.lcp.d3;
+% intrinsics(10) = meta.globals.lcp.t1;
+% intrinsics(11) = meta.globals.lcp.t2;
+% extrinsics = geom.betas;
 
 %---loop through alongshore locations
 num = -25:-1:-450;
@@ -174,8 +176,7 @@ for i = 1:length(num)
     
     %---profile
     xyz = [profile.x,  profile.y, profile.z]; % may to transpose or not to get to work, also , or ;
-    
-    UV = round(xyz2DistUV(intrinsics, extrinsics, xyz));
+    UV = round(findUVnDOF(geom.betas,xyz,geom.meta.globals));
     UV = reshape(UV,[],2);
     profile.u = UV(:,1);
     profile.v = UV(:,2);
@@ -183,7 +184,7 @@ for i = 1:length(num)
     
     %---R2
     xyz = [R2.x;  R2.y; R2.z]';
-    UV = round(xyz2DistUV(intrinsics, extrinsics, xyz));
+    UV = round(findUVnDOF(geom.betas,xyz,geom.meta.globals));
     UV = reshape(UV,[],2);
     R2.u(:,i) = UV(:,1);
     R2.v(:,i) = UV(:,2);
@@ -191,11 +192,11 @@ for i = 1:length(num)
     
     %---TWL
     xyz = [TWL.x;  TWL.y; TWL.z]';
-    UV = round(xyz2DistUV(intrinsics,extrinsics, xyz);
+    UV = round(findUVnDOF(geom.betas,xyz,geom.meta.globals));
     UV = reshape(UV,[],2);
     TWL.u(:,i) = UV(:,1);
     TWL.v(:,i) = UV(:,2);
-%     clear xyz UV
+    clear xyz UV
 end
 
 figure(1);
@@ -214,7 +215,6 @@ ax = axis;
 axis image; axis(ax);
 %title([datestr(R.time(tindex)) 'GMT']);
 print('-dpng', ['C:\Users\eswanson\OneDrive - DOI\Documents\GitHub\pixel2runup\forecasted',num2str(year), num2str(month), num2str(day), num2str(hr1), '.png'])
-
 figure(2);
 hold on
 % plot(profile.u,profile.v,'b-','linewidth',2);

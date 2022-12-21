@@ -511,5 +511,12 @@ for i in range(0, len(num)):
     TWLu[:,i] = UV[:,0]
     TWLv[:,i] = UV[:,1]
 
+## plot forecast ##
+snapImg = plt.imread(snapFile)
+timexFile = plt.imread(timexFile)
+fig, ax = plt.subplots()
+ax.imshow(snapImg)
+plt.show()
+
     
 
