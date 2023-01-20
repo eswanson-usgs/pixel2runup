@@ -17,9 +17,9 @@ end
 
 
 year  = 2022;
-month = 09;  monthNum=num2str(month,'%02d');
+month = 10;  monthNum=num2str(month,'%02d');
 day   = 15;  dayNum=num2str(day,'%02d');  
-hr1   = 13;
+hr1   = 19;
 % hr2  = 18;
 yearday=datenum(year,month,day)-datenum(year-1,12,31);yearday=num2str(yearday,'%03d');
 monthName=datestr([year,month,day,0,0,0],'mmm');
@@ -30,16 +30,22 @@ myepoch = num2str(datenum2epoch(datenum(year,month,day,hr1,0,0)));
 %*** 1. image data
 %load(['\\gs\StPetersburgFL-G\Coastal_Change_Hazards\Archive\Data\2016\2016-363-DD_20161028\madbeach\',num2str(year),'\c1\',yearday,'_',monthName,'.',dayNum,'\',myepoch,'.',dayName,'.',monthName,'.',dayNum,'_',num2str(hr1),'_00_00.GMT.',num2str(year),'.madbeach.c1.snap.mat']);
 %load(['\\gs\StPetersburgFL-G\Coastal_Change_Hazards\Archive\Data\2016\2016-363-DD_20161028\madbeach\',num2str(year),'\c1\',yearday,'_',monthName,'.',dayNum,'\',myepoch,'.',dayName,'.',monthName,'.',dayNum,'_',num2str(hr1),'_00_00.GMT.',num2str(year),'.madbeach.c1.timex.mat']);
-geom = load('geomFile_20170217.mat');
+geom = load('geomFile_c2.mat');
+%geom.betas(4) = 2.75317399047945;
+
+% %local coord values of x and y from madeira_beach_C1_extr.yml
+% geom.betas(1) = -2.5796;
+% geom.betas(2) = -1.2590;
+
 
 figure(1);
-image1 = imread('1487430000.Sat.Feb.18_15_00_00.GMT.2017.madbeach.c1.snap.jpg');
+image1 = imread('1665860400.Sat.Oct.15_19_00_00.GMT.2022.madbeach.c1.snap.jpg');
 imagesc(image1)
 %imshow('1663246800.Thu.Sep.15_13_00_00.GMT.2022.madbeach.c1.snap.jpg');
 %print('-dpng',['C:\Users\mpalmsten\OneDrive - DOI\projects\TWL\MadeiraBeach\ForecastOnImage\Snap',num2str(year), num2str(month), num2str(day), num2str(hr1), '.png'])
 
 figure(2);
-image2 = imread('1487430000.Sat.Feb.18_15_00_00.GMT.2017.madbeach.c1.timex.jpg');
+image2 = imread('1665860400.Sat.Oct.15_19_00_00.GMT.2022.madbeach.c1.timex.jpg');
 imagesc(image2)
 %imshow('1663246800.Thu.Sep.15_13_00_00.GMT.2022.madbeach.c1.timex.jpg')
 % print('-dpng', ['C:\Users\mpalmsten\OneDrive - DOI\projects\TWL\MadeiraBeach\ForecastOnImage\Timex',num2str(year), num2str(month), num2str(day), num2str(hr1), '.png'])
@@ -52,10 +58,10 @@ surveys_all = dir('\\gs\stpetersburgfl-g\NACCH\Imagery\madbeach\surveys\walking\
 surveys = [];
 for ii=1:length(surveys_all); surveys = [surveys; surveys_all(ii).name];end %specify
 tmp=((datenum(year,month,day)-datenum(surveys,'yyyymmdd')));
-ii=find(tmp>0,1,'last'); %find most recent topo
+ii=find(tmp>0,1,'last'); %find most recent topox ck6ll     ccc8
 if ii==4 || ii>=6
 % ans = dlmread(['\\gs\StPetersburgFL-G\NACCH\Imagery\madbeach\surveys\walking\20221005\line60.xyz']);
-ans = dlmread(['\\gs\StPetersburgFL-G\NACCH\Imagery\madbeach\surveys\walking\20170217\line59.xyz']);
+ans = dlmread(['\\gs\StPetersburgFL-G\NACCH\Imagery\madbeach\surveys\walking\20221005\line59.xyz']);
 profile.E=ans(:,1);profile.N=ans(:,2);
 [profile.x,profile.y]=coordSys_madbeach(profile.E,profile.N);
 profile.z=ans(:,3);
@@ -72,7 +78,7 @@ p2.z=ans(:,3);
 p2.x_new=p1.x;
 p2.z_new= interp1(p2.x,p2.z,p2.x_new);
 profile.x=p1.x;  profile.z=mean([p1.z, p2.z_new],2);
-profile.y=ones(size(p1.y))*-87.7; % estimating line 60 position to be -87.7 based on surveys that measured line 60
+%profile.y=ones(size(p1.y))*-87.7; % estimating line 60 position to be -87.7 based on surveys that measured line 60
 end
 
 profile.y=ones(size(profile.y))*-87.7; % estimating line 60 position to be -87.7 based on surveys that measured line 60

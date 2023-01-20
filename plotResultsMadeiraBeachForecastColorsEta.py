@@ -33,7 +33,7 @@ def coordSys_madbeach(E, N):
 
     #parameters from Madeira Beach calibration (intrinsics, extrinsics) - 01/28/2022
     #angle of rotation, degrees
-    theta = 227.753111137952
+    theta = 132.246888862048
     #origin Easting
     E0 = 323055.06675
     #origin Northing
@@ -125,7 +125,7 @@ def findUVnDOF(betas, xyz, lcp):
     repmat = np.tile(UV[2],(3,1))
     UV = np.divide(UV, repmat)
 
-    U,V = distortUV(UV[0], UV[1], lcp)
+    U,V = DJIdistort(UV[0], UV[1], lcp)
     UV = np.concatenate((U, V))
     return UV
 
@@ -289,14 +289,13 @@ def distortUV(U, V, lcp):
     
 ### MAIN ###
 #load image
-snapFile = '1663246800.Thu.Sep.15_13_00_00.GMT.2022.madbeach.c1.snap.jpg'
-timexFile = '1663246800.Thu.Sep.15_13_00_00.GMT.2022.madbeach.c1.timex.jpg'
+snapFile = '1665860400.Sat.Oct.15_19_00_00.GMT.2022.madbeach.c1.snap.jpg'
+timexFile = '1665860400.Sat.Oct.15_19_00_00.GMT.2022.madbeach.c1.timex.jpg'
 snap = plt.imread(snapFile)
 timex = plt.imread(timexFile)
 
 #load data
 geom_c1 = scipy.io.loadmat('./matlabcode/geomFile_c1.mat')
-geom_c2 = scipy.io.loadmat('./matlabcode/geomFile_c2.mat')
 lcp = {}
 lcp['c0U'] = scipy.io.loadmat('./matlabcode/globals/c0U.mat')
 lcp['c0V'] = scipy.io.loadmat('./matlabcode/globals/c0V.mat')
@@ -367,6 +366,9 @@ if hasXYZ:
 else:
     mostRecentLine60 = '//gs/stpetersburgfl-g/NACCH/Imagery/madbeach/surveys/walking/' + secondMostRecent + '/line60.xyz'
 
+###teting 2017 data
+##mostRecentLine60 = '//gs/stpetersburgfl-g/NACCH/Imagery/madbeach/surveys/walking/20170217/line59.xyz'
+
 #process line60
 profileE = []
 profileN = []
@@ -388,8 +390,8 @@ profileN = np.array(profileN)
 profileZ = np.array(profileZ)
 profileX, profileY = coordSys_madbeach(profileE, profileN)
 
-# estimating line 60 position to be -87.7 based on surveys that measured line 60
-profileY = np.ones(shape=profileY.shape) * (-87.7)
+### estimating line 60 position to be -87.7 based on surveys that measured line 60
+##profileY = np.ones(shape=profileY.shape) * (-87.7)
 
 #change NaN to 0s
 for i, elem in enumerate(profileZ):
@@ -419,7 +421,7 @@ mult = np.argwhere(a > 1)
 lat = 27.796216949206798
 lon = -82.796102542950635
 
-all_twl = scipy.io.loadmat('./matlabcode/all_TWL_forecast.mat')
+all_twl = scipy.io.loadmat('//gs/StPetersburgFL-G/NACCH/Imagery/madbeach/runup/all_TWL_forecast.mat')
 Rtime = all_twl['all_twl']['forecastTime']
 Rrunup05 = all_twl['all_twl']['runup05']
 Rrunup = all_twl['all_twl']['runup']
@@ -516,6 +518,7 @@ snapImg = plt.imread(snapFile)
 timexFile = plt.imread(timexFile)
 fig, ax = plt.subplots()
 ax.imshow(snapImg)
+ax.plot(TWLu, TWLv, '-', color='red')
 plt.show()
 
     
