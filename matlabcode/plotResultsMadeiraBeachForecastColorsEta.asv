@@ -32,9 +32,8 @@ myepoch = num2str(datenum2epoch(datenum(year,month,day,hr1,0,0)));
 %load(['\\gs\StPetersburgFL-G\Coastal_Change_Hazards\Archive\Data\2016\2016-363-DD_20161028\madbeach\',num2str(year),'\c1\',yearday,'_',monthName,'.',dayNum,'\',myepoch,'.',dayName,'.',monthName,'.',dayNum,'_',num2str(hr1),'_00_00.GMT.',num2str(year),'.madbeach.c1.timex.mat']);
 geom_file = 'geomFile_c1.mat';
 geom = load(geom_file);
-%go between old and new convention by subtracting rotation angle theta
 if geom_file == 'geomFile_c1.mat'
-    geom.betas(4) = geom.betas(4) - deg2rad(132.246888862048);
+    geom.betas(4) = deg2rad(geom.betas(4) - 132.246888862048); %go between old and new convention by subtracting rotation angle theta
 end 
 
 
