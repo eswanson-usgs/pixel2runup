@@ -112,7 +112,7 @@ def findUVnDOF(betas, xyz, lcp):
         xyz  (list) - list of numpy arrays of xyz coordinates to be converted to UV
         lcp (dict) - dictionary of values used for moving between real world and pixel coordinates
     Outputs:
-        UV (    ) - UV coordinates
+        UV (np array) - UV coordinates
     '''
 
     P = lcpBeta2P(lcp, betas)
@@ -178,6 +178,7 @@ def angles2R(a, t, r):
     R[2, 1] = np.sin(t) * np.cos(a)
     R[2, 2] = -np.cos(t)
     return R
+
 
 def DJIdistort(u, v, lcp):
     '''
@@ -295,7 +296,8 @@ snap = plt.imread(snapFile)
 timex = plt.imread(timexFile)
 
 #load data
-geom_c1 = scipy.io.loadmat('./matlabcode/geomFile_c1.mat')
+geom_file = 'geomFile_c1.mat'
+geom_c1 = scipy.io.loadmat('./matlabcode/' + geom_file)
 lcp = {}
 lcp['c0U'] = scipy.io.loadmat('./matlabcode/globals/c0U.mat')
 lcp['c0V'] = scipy.io.loadmat('./matlabcode/globals/c0V.mat')
@@ -315,6 +317,12 @@ lcp['t2'] = scipy.io.loadmat('./matlabcode/globals/t2.mat')
 lcp['x'] = np.array(scipy.io.loadmat('./matlabcode/globals/x.mat'))
 lcp['y'] = np.array(scipy.io.loadmat('./matlabcode/globals/y.mat'))
 
+#use squeeze() to get rid of unnecessary dimensions
+betas = geom_c1['betas'].squeeze()
+
+#if 2022 geom file, offset azimuth by rotation angle
+if geom_file == 'geomFile_c1.mat':
+    betas[3] = betas[3] - np.deg2rad(132.246888862048);
 
 #get datetime elements from filename
 filenameElements = snapFile.split('.')
@@ -351,7 +359,6 @@ for elem in surveysAll:
                 secondMostRecent = mostRecent
                 mostRecent = elem
                 
-
 mostRecentDir = os.listdir('//gs/stpetersburgfl-g/NACCH/Imagery/madbeach/surveys/walking/' + mostRecent)
 #check that most recent survey folder has .xyz files
 hasXYZ = False
@@ -480,8 +487,6 @@ for i in range(0, len(num)):
 
     #-- profile --
     xyz = np.array([profileX, profileY, profileZ])
-    #use squeeze() to get rid of unnecessary dimensions
-    betas = geom_c1['betas'].squeeze()
     UV = findUVnDOF(betas, xyz, lcp)
     UV = np.round(UV)
     UV = np.reshape(UV, (2, int(len(UV)/2)))
