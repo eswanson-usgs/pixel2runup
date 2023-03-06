@@ -8,11 +8,15 @@ import os
 import datetime
 import time
 import fsspec
-import numpy as np
+import requests
+import json
 import scipy.io
+import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy import random
+from tqdm import tqdm
 from scipy.interpolate import interp1d, interp2d, interpn
 
 ### FUNCTIONS ###
@@ -287,8 +291,141 @@ def distortUV(U, V, lcp):
     Vd = (yd * fy) + c0V
 
     return Ud, Vd
-    
-    
+
+
+def add_impact(row):
+    if row == 0:
+        return 'None'
+    elif row == 1:
+        return 'Collision'
+    elif row == 2:
+        return 'Overwash'
+    elif row == 3:
+        return 'Inundation'
+
+
+def twl_cc_api_download(region_id, init_date, site_id, final_date=None, refresh_id=False,
+                        refresh_df=False, pause=0.2, msl_2_navd=-0.096, external=True):
+    """
+    Download USGS TWL&CC data using the API and store everything in a DataFrame
+
+    region_id: Int with the ID of the region to download from
+    init_date: String with the first day of data to download (yyyy-mm-dd)
+    site_id: Int with the TWL&CC site ID number
+    final_date: String with the last day of data to download (yyyy-mm-dd)
+    refresh_id: Bool to force a re-grab of the forecast IDs
+    refresh_df: Bool to force a re-grab of the forecast
+    pause: Float with the amount of seconds between API calls (Default = 0.2)
+    msl_2_navd: Float to convert MSL elevation to NAVD88 (Set to 0 to leave as MSL)
+    external: Bool to use the external (True) or internal(?, False) server. Use for testing DDOS failures
+
+    Outputs:
+        twl_cc_df (pandas dataframe) - dataframe that holds the resulting forecast(s) from the TWL & CC API
+        usedPreviousDay (bool) - flag that relays whether or not a forecast from the previous day was used. This
+                                 flag is True when no forecasts are found from the initial query. This is really used
+                                 for Eric's querying of a single day (today)
+
+    Written by Michael Itzkin
+    Edits by Eric Swanson
+    """
+
+    # Set the final date to tomorrow if None
+    if final_date is None:
+        final_date = datetime.datetime.today() + datetime.timedelta(days=1)
+        final_date = final_date.strftime(format='%Y-%m-%d')
+
+    # Build the base request string
+    if external:
+        API_STR = f'https://coastal.er.usgs.gov/hurricanes/research/twlviewer/api/regions/{region_id}/forecasts'
+    else:
+        API_STR = f'http://coastal-dmz.er.usgs.gov/hurricanes/research/twlviewer/api/regions/{region_id}/forecasts'
+
+    # Get the total number pages of data
+    r = requests.get(f'{API_STR}?date=gte_{init_date}|lt_{final_date}&pageSize=100')
+    total_forecast_pages = json.loads(r.headers['X-Pagination'])['totalPages']
+    print(f'There are {total_forecast_pages} pages of forecasts to download...')
+
+    #if no forecasts available for init date, use a forecast from the day before
+    usedPreviousDay = False
+    if total_forecast_pages == 0:
+
+        print(f'No forecasts available for {init_date}-using forecast from previous day')
+        usedPreviousDay = True
+        previousDay = datetime.datetime.strptime(init_date,'%Y-%m-%d') - datetime.timedelta(days=1)
+        init_date = previousDay.strftime(format='%Y-%m-%d')
+        r = requests.get(f'{API_STR}?date=gte_{init_date}|lt_{final_date}&pageSize=100')
+        total_forecast_pages = json.loads(r.headers['X-Pagination'])['totalPages']
+        print(f'There are {total_forecast_pages} pages of forecasts to download...')
+        
+
+    # Loop over the pages of data and store the forecast IDs
+    forecast_id_file = 'TWLCC Forecast IDs.npy'
+    if not os.path.isfile(forecast_id_file) or refresh_id:
+        forecast_ids = []
+        print('Getting forecast ID numbers:')
+        for page in tqdm(range(1, total_forecast_pages + 1)):
+            print(page)
+            r = requests.get(f'{API_STR}?date=gte_{init_date}|lt_{final_date}&pageSize=100&pageNumber={page}')
+            page_data = r.json()
+            for item in page_data:
+                forecast_ids.append(item['id'])
+        np.save(forecast_id_file, np.array(forecast_ids))
+    else:
+        print('Loading previously collected forecast IDs')
+        forecast_ids = np.load(forecast_id_file)
+    print('Finished getting forecast ID numbers. Getting TWL&CC forecast records:')
+
+    # Loop over the forecast IDs
+    forecast_df_file = 'TWLCC Forecast.csv'
+    if not os.path.isfile(forecast_df_file) or refresh_df:
+        twl_cc_df_list = []
+        for _id in tqdm(forecast_ids):
+            try:
+                twl_cc_data = requests.get(f'{API_STR}/{_id}/sites/{site_id}/waterLevels')
+                json_data = twl_cc_data.json()
+
+                # The ID number changed at some point so if the result is blank try the older ID number
+                if len(json_data) == 0:
+                    twl_cc_data = requests.get(f'{API_STR}/{_id}/sites/{3195}/waterLevels')
+                    json_data = twl_cc_data.json()
+
+                # The ID number changed at some point again so if the result is blank try the older ID number
+                if len(json_data) == 0:
+                    twl_cc_data = requests.get(f'{API_STR}/{_id}/sites/{307}/waterLevels')
+                    json_data = twl_cc_data.json()
+
+                temp_df = pd.DataFrame.from_records(json_data)
+                twl_cc_df_list.append(temp_df)
+                time.sleep(pause)
+            except:
+                pass
+        twl_cc_df = pd.concat(twl_cc_df_list).reset_index(drop=True)
+        twl_cc_df.to_csv(forecast_df_file, index=False)
+    else:
+        print('Loading previously downloaded forecasts')
+        twl_cc_df = pd.read_csv(forecast_df_file, header=0, delimiter=',')
+    print('Finished downloading TWL&CC records!')
+
+    # Force data types
+    use_cols = twl_cc_df.columns[twl_cc_df.columns != 'dateTime']
+    twl_cc_df[use_cols] = twl_cc_df[use_cols].apply(pd.to_numeric, errors='coerce')
+    twl_cc_df['Date'] = pd.to_datetime(twl_cc_df['dateTime'], format='%Y-%m-%d %H:%M:%S')
+
+    # Convert MSL to NAVD88
+    msl_columns = ['twl', 'twl05', 'twl95', 'setup', 'runup', 'runup05', 'runup95',
+                   'tideWindSetup', 'swash', 'incSwash', 'infragSwash', 'hs']
+    twl_cc_df[msl_columns] += msl_2_navd
+
+    # Add additional columns
+    twl_cc_df['L'] = (9.81 * (twl_cc_df['pp']**2)) / (2 * np.pi)
+    twl_cc_df['predictedImpactCode'] = twl_cc_df['predictedImpactCode'].apply(add_impact)
+
+    # Sort the data by date and remove repeated forecasts.
+    twl_cc_df = twl_cc_df.sort_values(by='Date').drop_duplicates(subset=['Date'], keep='first').reset_index(drop=True)
+
+    return twl_cc_df, usedPreviousDay
+
+      
     
 ### MAIN ###
 print('start:',datetime.datetime.now())
@@ -327,7 +464,7 @@ lcp['y'] = np.array(scipy.io.loadmat('./matlabcode/globals/y.mat'))
 betas = geom_c1['betas'].squeeze()
 
 #if 2022 geom file, offset azimuth by rotation angle
-if geom_file == 'geomFile_c1.mat':
+if geom_file_local == 'geomFile_c1.mat':
     betas[3] = betas[3] - np.deg2rad(132.246888862048);
 
 #get datetime elements from filename
@@ -343,192 +480,195 @@ minute = dayHourSecond.split('_')[2]
 second = dayHourSecond.split('_')[3]
 year = filenameElements[5]
 imgDatetimeStr = f'{year}-{month}-{day} {hour}:{minute}:{second}'
-imgDatetime = datetime.datetime.strptime(imgDatetimeStr, "%Y-%m-%d %H:%M:%S")
+#imgDatetime = datetime.datetime.strptime(imgDatetimeStr, "%Y-%m-%d %H:%M:%S")
+######JUST FOR TESTING
+imgDatetime = datetime.datetime.now()
 
-###display image
-##plt.imshow(snap)
-##plt.show()
-##plt.imshow(timex)
-##plt.show()
-##
-##surveysAll = os.listdir('//gs/stpetersburgfl-g/NACCH/Imagery/madbeach/surveys/walking/')
-##i = 0
-##for elem in surveysAll:
-##    #want only most recent folder
-##    if elem.startswith('202'):
-##        if i == 0:
-##            mostRecent = elem
-##            i = i + 1
-##        else:
-##            if int(elem) > int(mostRecent):
-##                #2nd most recent in case most recent survey hasn't been processed yet
-##                secondMostRecent = mostRecent
-##                mostRecent = elem
-##                
-##mostRecentDir = os.listdir('//gs/stpetersburgfl-g/NACCH/Imagery/madbeach/surveys/walking/' + mostRecent)
-###check that most recent survey folder has .xyz files
-##hasXYZ = False
-##for file in mostRecentDir:
-##    if file.endswith('.xyz'):
-##        hasXYZ = True
-##        break
-##
-###yes, most recent folder has .xyz files
-##if hasXYZ:
-##    mostRecentLine60 = '//gs/stpetersburgfl-g/NACCH/Imagery/madbeach/surveys/walking/' + mostRecent + '/line60.xyz'
-##else:
-##    mostRecentLine60 = '//gs/stpetersburgfl-g/NACCH/Imagery/madbeach/surveys/walking/' + secondMostRecent + '/line60.xyz'
-##
-#####teting 2017 data
-####mostRecentLine60 = '//gs/stpetersburgfl-g/NACCH/Imagery/madbeach/surveys/walking/20170217/line59.xyz'
-##
-###process line60
-##profileE = []
-##profileN = []
-##profileZ = []
-##with open(mostRecentLine60, 'r') as xyzFile:
-##    for line in xyzFile:
-##        xyz = line.split(' ')
-##        x = float(xyz[0])
-##        y = float(xyz[1])
-##        z = xyz[2]
-##        #z has newiine character at the end
-##        z = float(z.replace('\n', ''))
-##        profileE.append(x)
-##        profileN.append(y)
-##        profileZ.append(z)
-##
-##profileE = np.array(profileE)
-##profileN = np.array(profileN)
-##profileZ = np.array(profileZ)
-##profileX, profileY = coordSys_madbeach(profileE, profileN)
-##
-##### estimating line 60 position to be -87.7 based on surveys that measured line 60
-####profileY = np.ones(shape=profileY.shape) * (-87.7)
-##
-###change NaN to 0s
-##for i, elem in enumerate(profileZ):
-##    if (elem == np.nan) or (elem == None):
-##        profileZ[i] = 0
-##
-##uniqueZ = np.unique(profileZ)
-##a, b = np.histogram(profileZ, bins=uniqueZ)
-##mult = np.argwhere(a > 1)
-###catch >2 identical values in profileZ
-##for i in range(0, len(mult)):
-##    #b is ascending array of unique values. mult is array of bins (arrays) in a with dupllicate values. indices in a match indices in b. So, index mult[i][0] will give index of a value in b that is not unique
-##    dupValue = b[mult[i][0]]
-##    dupIndices = np.argwhere(profileZ == dupValue)
-##    
-##    for ii in range(0, len(dupIndices)):
-##        #dupIndices[ii][0] is index in profileZ that contains duplicate values
-##        index = dupIndices[ii][0]
-##        #slightly alter value to prevent duplicates
-##        offset = random.rand() * 0.0000000001
-##        profileZ[index] = profileZ[index] + offset
-##
-##uniqueZ = np.unique(profileZ)
-##a, b = np.histogram(profileZ, bins=uniqueZ)
-##mult = np.argwhere(a > 1)
-##
-##lat = 27.796216949206798
-##lon = -82.796102542950635
-##
-##all_twl = scipy.io.loadmat('//gs/StPetersburgFL-G/NACCH/Imagery/madbeach/runup/all_TWL_forecast.mat')
-##Rtime = all_twl['all_twl']['forecastTime']
-##Rrunup05 = all_twl['all_twl']['runup05']
-##Rrunup = all_twl['all_twl']['runup']
-##Rrunup95 = all_twl['all_twl']['runup95']
-##Rtwl05 = all_twl['all_twl']['twl05']
-##Rtwl = all_twl['all_twl']['twl']
-##Rtwl95 = all_twl['all_twl']['twl95']
-##Rslope = all_twl['all_twl']['slope']
-##
-###only save madbeach data
-##pindex = 0
-###find twl data that matches image date. Because of scipy loadmat(), array is 3-layer deep array
-##for i in range(0, len(Rtime)):
-##    #convert string to datetime object
-##    RDatetime = datetime.datetime.strptime(Rtime[i][0][0], "%Y-%m-%d %H:%M:%S.0")
-##
-##    if (RDatetime < imgDatetime + datetime.timedelta(hours=1)) and (RDatetime > imgDatetime - datetime.timedelta(hours=1)):
-##        tindex = i
-##
-###loop through alongshore locations
-##num = [x for x in range(-25, -451, -1)]
-##for i in range(0, len(num)):
-##    m = Rslope[tindex, pindex]
-##
-##    R2z = []
-##    R2z.append(Rrunup05[tindex, pindex][0][0])
-##    R2z.append(Rrunup[tindex, pindex][0][0])
-##    R2z.append(Rrunup95[tindex, pindex][0][0])
-##    R2z = np.array(R2z)
-##
-##    #interp1d returns a 1d interpolation function (interpolate)
-##    interpolate = interp1d(profileZ, profileX)
-##
-##    R2x = []
-##    interpRX = interpolate(R2z)
-##    #interpX is array with shape (3, 1, 1). Need to extract individual values and append to R2x
-##    R2x.append(interpRX[0])
-##    R2x.append(interpRX[1])
-##    R2x.append(interpRX[2])
-##    R2x = np.array(R2x)
-##    R2y = num[i]*np.ones(len(R2x))
-##
-##    TWLz = []
-##    TWLz.append(Rtwl05[tindex,pindex][0][0])
-##    TWLz.append(Rtwl[tindex,pindex][0][0])
-##    TWLz.append(Rtwl05[tindex,pindex][0][0])
-##
-##    TWLx = []
-##    interpTWLX = interpolate(TWLz)
-##    TWLx.append(interpTWLX[0])
-##    TWLx.append(interpTWLX[1])
-##    TWLx.append(interpTWLX[2])
-##    TWLy = num[i]*np.ones(len(TWLx))
-##
-##    ###***world image coordinates***
-##
-##    #-- profile --
-##    xyz = np.array([profileX, profileY, profileZ])
-##    UV = findUVnDOF(betas, xyz, lcp)
-##    UV = np.round(UV)
-##    UV = np.reshape(UV, (2, int(len(UV)/2)))
-##    UV = UV.T
-##    profileU = UV[:,0]
-##    profileV = UV[:,1]
-##
-##    #-- R2 --
-##    if i == 0:
-##        R2u = np.ndarray(shape=(3,len(num)))
-##        R2v = np.ndarray(shape=(3,len(num)))
-##    xyz = np.array([R2x, R2y, R2z])
-##    UV = findUVnDOF(betas, xyz, lcp)
-##    UV = np.round(UV)
-##    UV = np.reshape(UV, (2, int(len(UV)/2)))
-##    UV = UV.T
-##    R2u[:,i] = UV[:,0]
-##    R2v[:,i] = UV[:,1]
-##
-##    #-- TWL --
-##    if i == 0:
-##        TWLu = np.ndarray(shape=(3,len(num)))
-##        TWLv = np.ndarray(shape=(3,len(num)))
-##    xyz = np.array([TWLx, TWLy, TWLz])
-##    UV = findUVnDOF(betas, xyz, lcp)
-##    UV = np.round(UV)
-##    UV = np.reshape(UV, (2, int(len(UV)/2)))
-##    UV = UV.T
-##    TWLu[:,i] = UV[:,0]
-##    TWLv[:,i] = UV[:,1]
-##
-#### plot forecast ##
-##fig, ax = plt.subplots()
-##ax.imshow(snap)
-##ax.plot(TWLu, TWLv, '-', color='red')
-##plt.show()
+surveysAll = file_system.glob('s3://cmgp-coastcam/cameras/madeira_beach/forecast/')
+i = 0
+for elem in surveysAll:
+    
+    filename = elem.split('/')[-1]
+    filedate = filename[0:8]
+    
+    #want only most recent survey
+    if filename.startswith('202'):
+        if i == 0:
+            mostRecentDate = filedate
+            mostRecentFile = elem
+            mostRecentLine60 = filename
+            i = i + 1
+        else:
+            if int(filedate) > int(mostRecentDate):
+                mostRecentFile = elem
+                mostRecentLine60 = filename
+                
+file_system.download('s3://' + mostRecentFile, mostRecentLine60)
+
+#process line60
+profileE = []
+profileN = []
+profileZ = []
+with open(mostRecentLine60, 'r') as xyzFile:
+    for line in xyzFile:
+        xyz = line.split(' ')
+        x = float(xyz[0])
+        y = float(xyz[1])
+        z = xyz[2]
+        #z has newiine character at the end
+        z = float(z.replace('\n', ''))
+        profileE.append(x)
+        profileN.append(y)
+        profileZ.append(z)
+
+profileE = np.array(profileE)
+profileN = np.array(profileN)
+profileZ = np.array(profileZ)
+profileX, profileY = coordSys_madbeach(profileE, profileN)
+
+### estimating line 60 position to be -87.7 based on surveys that measured line 60
+##profileY = np.ones(shape=profileY.shape) * (-87.7)
+
+#change NaN to 0s
+for i, elem in enumerate(profileZ):
+    if (elem == np.nan) or (elem == None):
+        profileZ[i] = 0
+
+uniqueZ = np.unique(profileZ)
+a, b = np.histogram(profileZ, bins=uniqueZ)
+mult = np.argwhere(a > 1)
+#catch >2 identical values in profileZ
+for i in range(0, len(mult)):
+    #b is ascending array of unique values. mult is array of bins (arrays) in a with dupllicate values. indices in a match indices in b. So, index mult[i][0] will give index of a value in b that is not unique
+    dupValue = b[mult[i][0]]
+    dupIndices = np.argwhere(profileZ == dupValue)
+    
+    for ii in range(0, len(dupIndices)):
+        #dupIndices[ii][0] is index in profileZ that contains duplicate values
+        index = dupIndices[ii][0]
+        #slightly alter value to prevent duplicates
+        offset = random.rand() * 0.0000000001
+        profileZ[index] = profileZ[index] + offset
+
+uniqueZ = np.unique(profileZ)
+a, b = np.histogram(profileZ, bins=uniqueZ)
+mult = np.argwhere(a > 1)
+
+lat = 27.796216949206798
+lon = -82.796102542950635
+
+#access TWL data via API
+region_id = 4
+init_date = datetime.datetime.today().strftime(format='%Y-%m-%d')
+site_id = 3667
+twl_cc_df, usedPreviousDay = twl_cc_api_download(region_id, init_date, site_id, refresh_id=True, refresh_df=True)
+
+all_twl = scipy.io.loadmat('//gs/StPetersburgFL-G/NACCH/Imagery/madbeach/runup/all_TWL_forecast.mat')
+Rtime = twl_cc_df['dateTime']
+Rrunup05 = twl_cc_df['runup05']
+Rrunup = twl_cc_df['runup']
+Rrunup95 = twl_cc_df['runup95']
+Rtwl05 = twl_cc_df['twl05']
+Rtwl = twl_cc_df['twl']
+Rtwl95 = twl_cc_df['twl95']
+
+#find twl data that matches image date. Because of scipy loadmat(), array is 3-layer deep array
+for i in range(0, len(Rtime)):
+    #convert string to datetime object
+    RDatetime = datetime.datetime.strptime(Rtime[i], "%Y-%m-%d %H:%M:%S")
+
+    #If using forecast from previous day, look for hour closest (or same as the image's)
+    if not usedPreviousDay:
+        dateDiff = abs(imgDatetime - RDatetime)
+    else:
+        previousDay = imgDatetime - datetime.timedelta(days=1)
+        dateDiff = abs(previousDay - RDatetime)
+
+    #compare times from dataframe to image time. 
+    if i == 0:
+        lowestDiff = dateDiff
+        forecastTime = Rtime[i]
+        tindex = i
+    else:
+        if dateDiff < lowestDiff:
+            lowestDiff = dateDiff
+            forecastTime  = Rtime[i]
+            tindex = i
+    
+#loop through alongshore locations
+num = [x for x in range(-25, -451, -1)]
+for i in range(0, len(num)):
+
+    R2z = []
+    R2z.append(Rrunup05[tindex])
+    R2z.append(Rrunup[tindex])
+    R2z.append(Rrunup95[tindex])
+    R2z = np.array(R2z)
+
+    #interp1d returns a 1d interpolation function (interpolate)
+    interpolate = interp1d(profileZ, profileX)
+
+    R2x = []
+    interpRX = interpolate(R2z)
+    #interpX is array with shape (3, 1, 1). Need to extract individual values and append to R2x
+    R2x.append(interpRX[0])
+    R2x.append(interpRX[1])
+    R2x.append(interpRX[2])
+    R2x = np.array(R2x)
+    R2y = num[i]*np.ones(len(R2x))
+
+    TWLz = []
+    TWLz.append(Rtwl05[tindex])
+    TWLz.append(Rtwl[tindex])
+    TWLz.append(Rtwl05[tindex])
+
+    TWLx = []
+    interpTWLX = interpolate(TWLz)
+    TWLx.append(interpTWLX[0])
+    TWLx.append(interpTWLX[1])
+    TWLx.append(interpTWLX[2])
+    TWLy = num[i]*np.ones(len(TWLx))
+
+    ###***world image coordinates***
+
+    #-- profile --
+    xyz = np.array([profileX, profileY, profileZ])
+    UV = findUVnDOF(betas, xyz, lcp)
+    UV = np.round(UV)
+    UV = np.reshape(UV, (2, int(len(UV)/2)))
+    UV = UV.T
+    profileU = UV[:,0]
+    profileV = UV[:,1]
+
+    #-- R2 --
+    if i == 0:
+        R2u = np.ndarray(shape=(3,len(num)))
+        R2v = np.ndarray(shape=(3,len(num)))
+    xyz = np.array([R2x, R2y, R2z])
+    UV = findUVnDOF(betas, xyz, lcp)
+    UV = np.round(UV)
+    UV = np.reshape(UV, (2, int(len(UV)/2)))
+    UV = UV.T
+    R2u[:,i] = UV[:,0]
+    R2v[:,i] = UV[:,1]
+
+    #-- TWL --
+    if i == 0:
+        TWLu = np.ndarray(shape=(3,len(num)))
+        TWLv = np.ndarray(shape=(3,len(num)))
+    xyz = np.array([TWLx, TWLy, TWLz])
+    UV = findUVnDOF(betas, xyz, lcp)
+    UV = np.round(UV)
+    UV = np.reshape(UV, (2, int(len(UV)/2)))
+    UV = UV.T
+    TWLu[:,i] = UV[:,0]
+    TWLv[:,i] = UV[:,1]
+
+## plot forecast ##
+fig, ax = plt.subplots()
+ax.imshow(snap)
+ax.plot(TWLu, TWLv, '-', color='red')
+plt.show()
 
 print('End:', datetime.datetime.now())
 
