@@ -150,7 +150,7 @@ def lcpBeta2P(lcp, betas):
     '''
 
     #because of way lcp variables are stored in .mat files, have to use weird indexing to get number value. e.g. lcp['fx']['fx'][0][0]
-    K = np.array([[lcp['fx']['fx'][0][0], 0, lcp['c0U']['c0U'][0][0]], [0, -1 * lcp['fy']['fy'][0][0], lcp['c0V']['c0V'][0][0]], [0, 0, 1]])
+    K = np.array([[lcp['fx'], 0, lcp['c0U']], [0, -1 * lcp['fy'], lcp['c0V']], [0, 0, 1]])
 
     R = angles2R(betas[3], betas[4], betas[5])
     #equivalent to -betas(1:3)' in matlab
@@ -207,31 +207,21 @@ def DJIdistort(u, v, lcp):
     
     #find the range dependent correction factor, fr.
     
-    x = (u - lcp['c0U']['c0U'][0][0]) / lcp['fx']['fx'][0][0]
-    y = (v - lcp['c0V']['c0V'][0][0]) / lcp['fy']['fy'][0][0]
+    x = (u - lcp['c0U']) / lcp['fx']
+    y = (v - lcp['c0V']) / lcp['fy']
     r2 = np.multiply(x, x) + np.multiply(y, y)
     
     #need to convert np.object lcp to dict with tolist(), then unpack values r and fr, then squeeze into 1 dimension
     lcp_r = lcp['r'].tolist()
-    lcp_r = lcp_r['r']
-    lcp_r = lcp_r.squeeze()
     lcp_fr = lcp['fr'].tolist()
-    lcp_fr = lcp_fr['fr']
-    lcp_fr = lcp_fr.squeeze()
     #can interp1d creates function, which can be called in the same line
     fr = interp1d(lcp_r, lcp_fr, fill_value='extrapolate')(np.sqrt(r2))
 
     #now do 2d interpolation for dx, dy
     lcp_x = lcp['x'].tolist()
-    lcp_x = lcp_x['x']
     lcp_y = lcp['y'].tolist()
-    lcp_y = lcp_y['y']
     lcp_dx = lcp['dx'].tolist()
-    lcp_dx = lcp_dx['dx']
-    lcp_dx = lcp_dx.squeeze()
     lcp_dy = lcp['dy'].tolist()
-    lcp_dy = lcp_dy['dy']
-    lcp_dy = lcp_dy.squeeze()
 
     #creates square grid but only want dx and dy to be 1 dimensional, so take last element
     dx = interp2d(lcp_x, lcp_y, lcp_dx)(x, y)[0]
@@ -239,8 +229,8 @@ def DJIdistort(u, v, lcp):
 
     x2 = np.multiply(x, fr) + dx
     y2 = np.multiply(y, fr) + dy
-    ud = (x2 * lcp['fx']['fx'][0][0]) + lcp['c0U']['c0U'][0][0]      #answer in chip pixel units
-    vd = (y2 * lcp['fy']['fy'][0][0]) + lcp['c0V']['c0V'][0][0]
+    ud = (x2 * lcp['fx']) + lcp['c0U']      #answer in chip pixel units
+    vd = (y2 * lcp['fy']) + lcp['c0V']
     return ud, vd
 
 
@@ -261,17 +251,17 @@ def distortUV(U, V, lcp):
         Vd (np.array) - distorted pixel coordinates (columns)
     '''
 
-    NU = lcp['NU']['NU'][0][0]
-    NV = lcp['NV']['NV'][0][0]
-    c0U = lcp['c0U']['c0U'][0][0]
-    c0V = lcp['c0V']['c0V'][0][0]
-    fx = lcp['fx']['fx'][0][0]
-    fy = lcp['fy']['fy'][0][0]
-    d1 = lcp['d1']['d1'][0][0]
-    d2 = lcp['d2']['d2'][0][0]
-    d3 = lcp['d3']['d3'][0][0]
-    t1 = lcp['t1']['t1'][0][0]
-    t2 = lcp['t2']['t2'][0][0]
+    NU = lcp['NU']
+    NV = lcp['NV']
+    c0U = lcp['c0U']
+    c0V = lcp['c0V']
+    fx = lcp['fx']
+    fy = lcp['fy']
+    d1 = lcp['d1']
+    d2 = lcp['d2']
+    d3 = lcp['d3']
+    t1 = lcp['t1']
+    t2 = lcp['t2']
 
     #normalize distances
     x = (U - c0U) / fx
@@ -441,25 +431,26 @@ snap = plt.imread(snapFile)
 geom_file_s3 = 's3://cmgp-coastcam/cameras/madeira_beach/forecast/geomFile_c1.mat'
 geom_file_local = 'geomFile_c1.mat'
 file_system.download(geom_file_s3, geom_file_local)
-geom_c1 = scipy.io.loadmat(geom_file_local)
+geom_c1 = scipy.io.loadmat(geom_file_local, squeeze_me=True, struct_as_record=False)
+
 lcp = {}
-lcp['c0U'] = scipy.io.loadmat('./matlabcode/globals/c0U.mat')
-lcp['c0V'] = scipy.io.loadmat('./matlabcode/globals/c0V.mat')
-lcp['d1'] = scipy.io.loadmat('./matlabcode/globals/d1.mat')
-lcp['d2'] = scipy.io.loadmat('./matlabcode/globals/d2.mat')
-lcp['d3'] = scipy.io.loadmat('./matlabcode/globals/d3.mat')
-lcp['dx'] = np.array(scipy.io.loadmat('./matlabcode/globals/dx.mat'))
-lcp['dy'] = np.array(scipy.io.loadmat('./matlabcode/globals/dy.mat'))
-lcp['fr'] = np.array(scipy.io.loadmat('./matlabcode/globals/fr.mat'))
-lcp['fx'] = scipy.io.loadmat('./matlabcode/globals/fx.mat')
-lcp['fy'] = scipy.io.loadmat('./matlabcode/globals/fy.mat')
-lcp['NU'] = scipy.io.loadmat('./matlabcode/globals/NU.mat')
-lcp['NV'] = scipy.io.loadmat('./matlabcode/globals/NV.mat')
-lcp['r']= np.array(scipy.io.loadmat('./matlabcode/globals/r.mat'))
-lcp['t1'] = scipy.io.loadmat('./matlabcode/globals/t1.mat')
-lcp['t2'] = scipy.io.loadmat('./matlabcode/globals/t2.mat')
-lcp['x'] = np.array(scipy.io.loadmat('./matlabcode/globals/x.mat'))
-lcp['y'] = np.array(scipy.io.loadmat('./matlabcode/globals/y.mat'))
+lcp['c0U'] = geom_c1['meta'].globals.lcp.c0U
+lcp['c0V'] = geom_c1['meta'].globals.lcp.c0V
+lcp['d1'] = geom_c1['meta'].globals.lcp.d1
+lcp['d2'] = geom_c1['meta'].globals.lcp.d2
+lcp['d3'] = geom_c1['meta'].globals.lcp.d3
+lcp['dx'] = np.array(geom_c1['meta'].globals.lcp.dx)
+lcp['dy'] = np.array(geom_c1['meta'].globals.lcp.dy)
+lcp['fr'] = np.array(geom_c1['meta'].globals.lcp.fr)
+lcp['fx'] = geom_c1['meta'].globals.lcp.fx
+lcp['fy'] = geom_c1['meta'].globals.lcp.fy
+lcp['NU'] = geom_c1['meta'].globals.lcp.NU
+lcp['NV'] = geom_c1['meta'].globals.lcp.NV
+lcp['r']= np.array(geom_c1['meta'].globals.lcp.r)
+lcp['t1'] = geom_c1['meta'].globals.lcp.t1
+lcp['t2'] = geom_c1['meta'].globals.lcp.t2
+lcp['x'] = np.array(geom_c1['meta'].globals.lcp.x)
+lcp['y'] = np.array(geom_c1['meta'].globals.lcp.y)
 
 #use squeeze() to get rid of unnecessary dimensions
 betas = geom_c1['betas'].squeeze()
@@ -583,7 +574,6 @@ twl_cc_df, usedPreviousDay = twl_cc_api_download(region_id, init_date, site_id, 
 ##        Rtwl.append(float(row['twl']))
 ##        Rtwl95.append(float(row['twl95']))
 
-all_twl = scipy.io.loadmat('//gs/StPetersburgFL-G/NACCH/Imagery/madbeach/runup/all_TWL_forecast.mat')
 Rtime = twl_cc_df['dateTime']
 Rrunup05 = twl_cc_df['runup05']
 Rrunup = twl_cc_df['runup']
