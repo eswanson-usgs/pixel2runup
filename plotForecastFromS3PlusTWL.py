@@ -10,6 +10,7 @@ import time
 import fsspec
 import requests
 import json
+import csv
 import scipy.io
 import numpy as np
 import pandas as pd
@@ -562,6 +563,25 @@ region_id = 4
 init_date = datetime.datetime.today().strftime(format='%Y-%m-%d')
 site_id = 3667
 twl_cc_df, usedPreviousDay = twl_cc_api_download(region_id, init_date, site_id, refresh_id=True, refresh_df=True)
+
+#####code for testing opening csv and reading data without using Pandas dataframe
+##with open('TWLCC Forecast.csv', newline='') as csvfile:
+##    reader = csv.DictReader(csvfile, delimiter=',')
+##    Rtime = []
+##    Rrunup05 = []
+##    Rrunup = []
+##    Rrunup95 = []
+##    Rtwl05 = []
+##    Rtwl = []
+##    Rtwl95 = []
+##    for row in reader:
+##        Rtime.append(row['dateTime'])
+##        Rrunup05.append(float(row['runup05']))
+##        Rrunup.append(float(row['runup']))
+##        Rrunup95.append(float(row['runup95']))
+##        Rtwl05.append(float(row['twl05']))
+##        Rtwl.append(float(row['twl']))
+##        Rtwl95.append(float(row['twl95']))
 
 all_twl = scipy.io.loadmat('//gs/StPetersburgFL-G/NACCH/Imagery/madbeach/runup/all_TWL_forecast.mat')
 Rtime = twl_cc_df['dateTime']
