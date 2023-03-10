@@ -630,7 +630,7 @@ for i in range(0, len(num)):
     TWLz = []
     TWLz.append(Rtwl05[tindex])
     TWLz.append(Rtwl[tindex])
-    TWLz.append(Rtwl05[tindex])
+    TWLz.append(Rtwl95[tindex])
 
     TWLx = []
     interpTWLX = interpolate(TWLz)
@@ -677,7 +677,14 @@ for i in range(0, len(num)):
 ## plot forecast ##
 fig, ax = plt.subplots()
 ax.imshow(snap)
-ax.plot(TWLu, TWLv, '-', color='red')
+#TWL
+ax.plot(TWLu[1,:], TWLv[1,:], color='blue', linestyle='-', fillstyle='full')
+#TWL 5% uncertainty
+ax.plot(TWLu[0,:], TWLv[0,:], color='cyan', linestyle='--', fillstyle='full')
+#TWL 95% uncertainty
+ax.plot(TWLu[2,:], TWLv[2,:], color='cyan', linestyle='--', fillstyle='full')
+plt.tight_layout()
+plt.savefig('forecasted_img.jpg', bbox_inches='tight')
 plt.show()
 
 print('End:', datetime.datetime.now())
