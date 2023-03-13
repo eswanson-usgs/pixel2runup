@@ -675,16 +675,34 @@ for i in range(0, len(num)):
     TWLv[:,i] = UV[:,1]
 
 ## plot forecast ##
+flipped95u = np.flip(TWLu[2,:])
+flipped95v = np.flip(TWLv[2,:])
+polygonPoints = []
+for i in range(len(TWLu[0,:])):
+   #append points from 5% uncertainty to list of polygon points first
+   polygonPoints.append([TWLu[0,:][i], TWLv[0,:][i]])
+
+for i in range(len(TWLu[2,:])):
+   #append points from 95% uncertainty to list of polygon points next
+   polygonPoints.append([flipped95u[i], flipped95v[i]])
+
+polygonPoints = np.array(polygonPoints)   
+uncertaintyPolygon = plt.Polygon(polygonPoints, closed=True, fill=True, alpha=0.5, color='cyan')
+    
 fig, ax = plt.subplots()
 ax.imshow(snap)
 #TWL
 ax.plot(TWLu[1,:], TWLv[1,:], color='blue', linestyle='-', fillstyle='full')
 #TWL 5% uncertainty
-ax.plot(TWLu[0,:], TWLv[0,:], color='cyan', linestyle='--', fillstyle='full')
+ax.plot(TWLu[0,:], TWLv[0,:], color='cyan', linestyle='--', fillstyle='full', alpha=0.5)
 #TWL 95% uncertainty
-ax.plot(TWLu[2,:], TWLv[2,:], color='cyan', linestyle='--', fillstyle='full')
-plt.tight_layout()
+ax.plot(TWLu[2,:], TWLv[2,:], color='cyan', linestyle='--', fillstyle='full', alpha=0.5)
+ax.add_patch(uncertaintyPolygon)
 plt.savefig('forecasted_img.jpg', bbox_inches='tight')
+
+
+
+###########FIX coords going off bounds of image
 plt.show()
 
 print('End:', datetime.datetime.now())
