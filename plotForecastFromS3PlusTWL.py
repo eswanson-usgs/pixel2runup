@@ -674,20 +674,30 @@ for i in range(0, len(num)):
     TWLu[:,i] = UV[:,0]
     TWLv[:,i] = UV[:,1]
 
+#remove values so plot doesn't extend past image
+for i in range(TWLu.shape[1]):
+    if (TWLu[0,i] < 0) or (TWLu[1,i] < 0) or (TWLu[2,i] < 0):
+        TWLu[0] = np.delete(TWLu[0], i)
+        TWLu[1] = np.delete(TWLu[1], i)
+        TWLu[2] = np.delete(TWLu[2], i)
+        TWLv[0] = np.delete(TWLv[0], i)
+        TWLv[1] = np.delete(TWLv[1], i)
+        TWLv[2] = np.delete(TWLv[2], i)
+
 ## plot forecast ##
 flipped95u = np.flip(TWLu[2,:])
 flipped95v = np.flip(TWLv[2,:])
 polygonPoints = []
 for i in range(len(TWLu[0,:])):
    #append points from 5% uncertainty to list of polygon points first
-   polygonPoints.append([TWLu[0,:][i], TWLv[0,:][i]])
+   polygonPoints.append([TWLu[0,i], TWLv[0,i]])
 
 for i in range(len(TWLu[2,:])):
    #append points from 95% uncertainty to list of polygon points next
    polygonPoints.append([flipped95u[i], flipped95v[i]])
 
 polygonPoints = np.array(polygonPoints)   
-uncertaintyPolygon = plt.Polygon(polygonPoints, closed=True, fill=True, alpha=0.5, color='cyan')
+uncertaintyPolygon = plt.Polygon(polygonPoints, closed=True, fill=True, alpha=0.4, color='cyan')
     
 fig, ax = plt.subplots()
 ax.imshow(snap)
@@ -702,7 +712,7 @@ plt.savefig('forecasted_img.jpg', bbox_inches='tight')
 
 
 
-###########FIX coords going off bounds of image
+###########FIX coords going off bounds of image (remove negative uv values))
 plt.show()
 
 print('End:', datetime.datetime.now())
