@@ -710,9 +710,6 @@ ax.plot(TWLu[2,:], TWLv[2,:], color='cyan', linestyle='--', fillstyle='full', al
 ax.add_patch(uncertaintyPolygon)
 plt.savefig('forecasted_img.jpg', bbox_inches='tight')
 
-
-
-###########FIX coords going off bounds of image (remove negative uv values))
 plt.show()
 
 print('End:', datetime.datetime.now())
