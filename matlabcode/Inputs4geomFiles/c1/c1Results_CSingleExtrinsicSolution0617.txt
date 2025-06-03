@@ -1,0 +1,35 @@
+Solved Extrinsics and NLinfit Error
+ x = 323057.7331 +- 0.3491
+ y = 3075921.151 +- 0.12497
+ z = 19.6147 +- 0.31618
+ azimuth = 281.9465 +- 0.17068 degrees
+ tilt = 70.1517 +- 0.21073 degrees
+ swing = 0.43102 +- 0.37866 degrees
+ 
+Horizontal GCP Reprojection Error
+GCP Num \ X Err \  YErr
+3\0.62872\-0.46042
+4\0.60074\-0.51062
+5\0.33224\-0.37944
+6\-1.0277\0.5952
+7\-4.3814\3.6999
+8\-2.5465\3.1741
+9\-0.18351\0.77207
+10\0.60634\-0.19239
+11.12\0.47655\-0.24854
+13\0.3142\-0.29445
+14\-0.15904\-0.096768
+15\-0.11603\0.13255
+ 
+Finished Solution
+                    iopath: 'C:\Users\skarwandyar\Downloads\CIRN-Introduction-to-Quantitative-Coastal-Imaging-Toolbox-master\C1_madbeach2022_IO.mat'
+                 gcpUvPath: 'C:\Users\skarwandyar\Documents\ExtrinsicCalib_MadBeach2022\c1\C1_madbeach2022_gcpUVdInitial.mat'
+                gcpXyzPath: 'C:\Users\skarwandyar\Documents\ExtrinsicCalib_MadBeach2022\c1\madbeach_C1gcps_042022.txt'
+                  gcpsUsed: [3 4 5 6 7 8 9 10 11.1200 13 14 15]
+                   gcpRMSE: [1.5376 1.4590 0]
+                      gcps: [1×12 struct]
+    extrinsicsInitialGuess: [3.2306e+05 3.0759e+06 19.2300 4.6426 1.2566 0.0332]
+      extrinsicsKnownsFlag: [0 0 0 0 0 0]
+          extrinsicsUncert: [0.3491 0.1250 0.3162 0.0030 0.0037 0.0066]
+                 imagePath: 'C:\Users\skarwandyar\Documents\ExtrinsicCalib_MadBeach2022\c1\images_4_gcpSelection\imageGCP_c1.jpg'
+             worldCoordSys: 'NAD83(2011) UTM Zone 17N (m)'
